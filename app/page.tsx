@@ -2,28 +2,53 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '../lib/supabase'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-  // Default credentials (temporary)
-  const DEFAULT_USERNAME = 'admin'
-  const DEFAULT_PASSWORD = 'admin123'
-
-  const handleLogin = (e: React.FormEvent) => {
+  // Handle login using Supabase `admin_users` table
+  // Table structure (example):
+  // - id (uuid)
+  // - username (text)
+  // - password (text)  // for school/demo only – in real apps use hashed passwords
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setIsLoading(true)
 
-    if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
-      // Store login state in localStorage (temporary, no backend)
+    try {
+      const { data, error: queryError } = await supabase
+        .from('admin_users')
+        .select('id, username')
+        .eq('username', username)
+        .eq('password', password)
+        .maybeSingle()
+
+      if (queryError) {
+        console.error('Supabase admin login error:', queryError)
+        setError('Unable to contact server. Please try again.')
+        return
+      }
+
+      if (!data) {
+        setError('Invalid username or password')
+        return
+      }
+
+      // Successful login – store simple flag on the client
       localStorage.setItem('isAuthenticated', 'true')
       localStorage.setItem('adminUser', username)
       router.push('/dashboard')
-    } else {
-      setError('Invalid username or password')
+    } catch (err) {
+      console.error('Unexpected login error:', err)
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -114,9 +139,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 hover:from-purple-600 hover:via-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 shadow-lg hover:shadow-2xl transform hover:-translate-y-0.5 text-sm tracking-wide uppercase"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 hover:from-purple-600 hover:via-purple-700 hover:to-purple-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition duration-200 shadow-lg hover:shadow-2xl transform hover:-translate-y-0.5 text-sm tracking-wide uppercase"
             >
-              Login
+              {isLoading ? 'Signing in...' : 'Login'}
             </button>
           </form>
 
