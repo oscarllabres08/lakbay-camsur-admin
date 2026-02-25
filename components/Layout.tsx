@@ -33,26 +33,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-800">{pageTitle}</h1>
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-600 hover:text-gray-800">
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="bg-white border-b border-gray-200 px-6 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 truncate tracking-tight">{pageTitle}</h1>
+          <div className="flex items-center gap-3 lg:gap-4 flex-shrink-0">
+            <button className="relative p-2 text-gray-600 hover:text-gray-800 transition-colors">
               <Bell size={20} />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center">
-                <User size={20} className="text-white" />
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="w-9 h-9 lg:w-10 lg:h-10 bg-primary-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <User size={18} className="text-white" />
               </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">{adminUser}</p>
-                <p className="text-xs text-gray-500">Administrator</p>
+              <div className="hidden sm:block">
+                <p className="text-base font-bold text-gray-800 truncate max-w-[120px]">{adminUser}</p>
+                <p className="text-sm text-gray-500">Administrator</p>
               </div>
             </div>
           </div>
         </header>
-        <main className="flex-1 p-8">{children}</main>
+        <main className="flex-1 p-4 lg:p-8 overflow-auto">{children}</main>
       </div>
     </div>
   )

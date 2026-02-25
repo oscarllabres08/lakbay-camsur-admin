@@ -54,10 +54,16 @@ const getCategoryLabel = (value: string): string => {
   return cat ? cat.label : value
 }
 
-const bestTimeOptions = [
-  { label: 'Morning (8-10 AM)', value: 'morning' },
-  { label: 'Afternoon (3-5 PM)', value: 'afternoon' },
-  { label: 'Evening (6 PM onward)', value: 'evening' },
+const bestTimeOptionsFood = [
+  { label: 'Breakfast', value: 'breakfast' },
+  { label: 'Lunch', value: 'lunch' },
+  { label: 'Dinner', value: 'dinner' },
+]
+
+const bestTimeOptionsNature = [
+  { label: 'Morning 8am-10am', value: 'morning' },
+  { label: 'Afternoon 3pm-5pm', value: 'late afternoon' },
+  { label: 'Evening 6pm onward', value: 'evening' },
 ]
 
 const accommodationTypes = [
@@ -88,6 +94,22 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
     return getCategoryValue(destination.category) || categories[0].value
   }
 
+  // Helper to parse accommodations from various formats
+  const parseAccommodations = (acc: any): Accommodation[] => {
+    if (!acc) return [];
+    if (Array.isArray(acc)) return acc;
+    if (typeof acc === 'string') {
+      try {
+        return JSON.parse(acc);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const initialAccommodations = parseAccommodations(destination?.accommodations);
+
   const [formData, setFormData] = useState<Destination>({
     name: destination?.name || '',
     category: getInitialCategory(),
@@ -99,22 +121,220 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
     bestTimeToVisit: destination?.bestTimeToVisit || [],
     estimatedCost: destination?.estimatedCost || '',
     image_url: destination?.image_url || '',
-    accommodations: destination?.accommodations || [],
+    accommodations: initialAccommodations,
     rating: destination?.rating || undefined,
   })
+
+
+  // For resort category, bestTimeToVisit is a text input (string)
+  // For other categories, it's checkboxes (array)
+  const getInitialBestTimeForResort = (): string => {
+    if (!destination) {
+      // When creating a new resort, default to "Weekdays, Summer"
+      return 'Weekdays, Summer';
+    }
+    // Check if destination category is resorts
+    const destCategory = destination.category;
+    const isResort = destCategory === 'resorts' || destCategory === 'Resort & Recreation';
+    if (!isResort) return '';
+    
+    // If it's an array, join with comma, otherwise return as string
+    if (Array.isArray(destination.bestTimeToVisit)) {
+      const joined = destination.bestTimeToVisit.join(', ');
+      return joined || 'Weekdays, Summer'; // Default if empty
+    }
+    const value = typeof destination.bestTimeToVisit === 'string' ? destination.bestTimeToVisit : '';
+    return value || 'Weekdays, Summer'; // Default if empty
+  }
+
+  const getInitialBestTimeForHeritage = (): string => {
+    if (!destination) {
+      // When creating a new heritage destination, default to "Anytime"
+      return 'Anytime';
+    }
+    // Check if destination category is heritage
+    const destCategory = destination.category;
+    const isHeritage = destCategory === 'heritage' || destCategory === 'Heritage & Culture';
+    if (!isHeritage) return '';
+    
+    // If it's an array, join with comma, otherwise return as string
+    if (Array.isArray(destination.bestTimeToVisit)) {
+      const joined = destination.bestTimeToVisit.join(', ');
+      return joined || 'Anytime'; // Default if empty
+    }
+    const value = typeof destination.bestTimeToVisit === 'string' ? destination.bestTimeToVisit : '';
+    return value || 'Anytime'; // Default if empty
+  }
+
+  const [resortBestTimeText, setResortBestTimeText] = useState<string>(
+    getInitialBestTimeForResort()
+  )
+
+  const [heritageBestTimeText, setHeritageBestTimeText] = useState<string>(
+    getInitialBestTimeForHeritage()
+  )
+
+  // Parse entrance fees for resort category (Day and Night)
+  const parseEntranceFees = (costStr: string | undefined): { day: string; night: string } => {
+    if (!costStr) return { day: '', night: '' };
+    
+    // Try to parse format like "Day: ₱50; Night: ₱50" or "Day: 50; Night: 50"
+    const dayMatch = costStr.match(/day[^0-9]*₱?\s*(\d+)/i);
+    const nightMatch = costStr.match(/night[^0-9]*₱?\s*(\d+)/i);
+    
+    return {
+      day: dayMatch ? dayMatch[1] : '',
+      night: nightMatch ? nightMatch[1] : '',
+    };
+  }
+
+  const initialEntranceFees = parseEntranceFees(destination?.estimatedCost);
+  const [resortEntranceFeeDay, setResortEntranceFeeDay] = useState<string>(initialEntranceFees.day);
+  const [resortEntranceFeeNight, setResortEntranceFeeNight] = useState<string>(initialEntranceFees.night);
+  
+  // Parse availability from operatingHours for resorts
+  const parseAvailability = (operatingHours: string | undefined): { day: boolean; night: boolean } => {
+    if (!operatingHours) return { day: false, night: false };
+    const lower = operatingHours.toLowerCase();
+    if (lower.includes('24/7') || lower.includes('24 hours') || lower.includes('open 24')) {
+      return { day: true, night: true };
+    }
+    return {
+      day: lower.includes('day'),
+      night: lower.includes('night'),
+    };
+  };
+
+  const initialAvailability = parseAvailability(destination?.operatingHours);
+  const [resortAvailabilityDay, setResortAvailabilityDay] = useState<boolean>(initialAvailability.day);
+  const [resortAvailabilityNight, setResortAvailabilityNight] = useState<boolean>(initialAvailability.night);
   
   const [accommodations, setAccommodations] = useState<Accommodation[]>(
-    destination?.accommodations || []
+    initialAccommodations
   )
 
   // Update accommodations when destination changes (for editing)
   useEffect(() => {
-    if (destination?.accommodations) {
-      setAccommodations(destination.accommodations)
-    } else {
-      setAccommodations([])
+    if (!isOpen) {
+      // Reset when modal closes
+      setAccommodations([]);
+      setResortBestTimeText('');
+      setHeritageBestTimeText('');
+      setResortEntranceFeeDay('');
+      setResortEntranceFeeNight('');
+      setResortAvailabilityDay(false);
+      setResortAvailabilityNight(false);
+      return;
     }
-  }, [destination])
+    
+    if (destination?.accommodations) {
+      // Handle both JSON string and array formats
+      const parsedAccommodations = parseAccommodations(destination.accommodations);
+      setAccommodations(parsedAccommodations);
+    } else {
+      setAccommodations([]);
+    }
+
+    // Update resort best time text and entrance fees when destination changes
+    if (destination) {
+      const destCategory = destination.category;
+      const isResort = destCategory === 'resorts' || destCategory === 'Resort & Recreation';
+      const isHeritage = destCategory === 'heritage' || destCategory === 'Heritage & Culture';
+      
+      if (isResort) {
+        if (Array.isArray(destination.bestTimeToVisit)) {
+          const joined = destination.bestTimeToVisit.join(', ');
+          setResortBestTimeText(joined || 'Weekdays, Summer');
+        } else if (typeof destination.bestTimeToVisit === 'string') {
+          setResortBestTimeText(destination.bestTimeToVisit || 'Weekdays, Summer');
+        } else {
+          setResortBestTimeText('Weekdays, Summer');
+        }
+        // Parse entrance fees
+        const fees = parseEntranceFees(destination.estimatedCost);
+        setResortEntranceFeeDay(fees.day);
+        setResortEntranceFeeNight(fees.night);
+        // Parse availability
+        const availability = parseAvailability(destination.operatingHours);
+        setResortAvailabilityDay(availability.day);
+        setResortAvailabilityNight(availability.night);
+        setHeritageBestTimeText('');
+      } else if (isHeritage) {
+        if (Array.isArray(destination.bestTimeToVisit)) {
+          const joined = destination.bestTimeToVisit.join(', ');
+          setHeritageBestTimeText(joined || 'Anytime');
+        } else if (typeof destination.bestTimeToVisit === 'string') {
+          setHeritageBestTimeText(destination.bestTimeToVisit || 'Anytime');
+        } else {
+          setHeritageBestTimeText('Anytime');
+        }
+        setResortBestTimeText('');
+        setResortEntranceFeeDay('');
+        setResortEntranceFeeNight('');
+      } else {
+        setResortBestTimeText('');
+        setHeritageBestTimeText('');
+        setResortEntranceFeeDay('');
+        setResortEntranceFeeNight('');
+      }
+    } else {
+      // When creating a new destination, set defaults based on category
+      if (formData.category === 'resorts') {
+        setResortBestTimeText('Weekdays, Summer');
+        setHeritageBestTimeText('');
+        setResortEntranceFeeDay('');
+        setResortEntranceFeeNight('');
+        setResortAvailabilityDay(true);
+        setResortAvailabilityNight(true);
+      } else if (formData.category === 'heritage') {
+        setHeritageBestTimeText('Anytime');
+        setResortBestTimeText('');
+        setResortEntranceFeeDay('');
+        setResortEntranceFeeNight('');
+      } else {
+        setResortBestTimeText('');
+        setHeritageBestTimeText('');
+        setResortEntranceFeeDay('');
+        setResortEntranceFeeNight('');
+        setResortAvailabilityDay(false);
+        setResortAvailabilityNight(false);
+      }
+    }
+  }, [destination, isOpen])
+
+  // Set default or clear best time text and entrance fees when category changes
+  useEffect(() => {
+    if (formData.category === 'resorts') {
+      // When switching to resort category, set default if empty
+      if (!resortBestTimeText && !destination) {
+        setResortBestTimeText('Weekdays, Summer');
+      }
+      // Default to both day and night when creating new resort
+      if (!destination && !resortAvailabilityDay && !resortAvailabilityNight) {
+        setResortAvailabilityDay(true);
+        setResortAvailabilityNight(true);
+      }
+      setHeritageBestTimeText('');
+    } else if (formData.category === 'heritage') {
+      // When switching to heritage category, set default if empty
+      if (!heritageBestTimeText && !destination) {
+        setHeritageBestTimeText('Anytime');
+      }
+      setResortBestTimeText('');
+      setResortEntranceFeeDay('');
+      setResortEntranceFeeNight('');
+      setResortAvailabilityDay(false);
+      setResortAvailabilityNight(false);
+    } else {
+      // Clear when switching away from resorts or heritage
+      if (resortBestTimeText) setResortBestTimeText('');
+      if (heritageBestTimeText) setHeritageBestTimeText('');
+      if (resortEntranceFeeDay) setResortEntranceFeeDay('');
+      if (resortEntranceFeeNight) setResortEntranceFeeNight('');
+      setResortAvailabilityDay(false);
+      setResortAvailabilityNight(false);
+    }
+  }, [formData.category])
 
   const [imagePreview, setImagePreview] = useState<string | null>(destination?.image_url || null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -265,6 +485,41 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
       // Category is already in value format (nature, food, etc.)
       const categoryValue = formData.category
 
+      // For resort and heritage categories, use text input value; for others, use checkbox array
+      let bestTimeToVisitValue: string[] | null = null;
+      if (categoryValue === 'resorts') {
+        // For resorts, convert text input to array (split by comma if multiple values)
+        if (resortBestTimeText.trim()) {
+          bestTimeToVisitValue = resortBestTimeText.split(',').map(s => s.trim()).filter(Boolean);
+        }
+      } else if (categoryValue === 'heritage') {
+        // For heritage, convert text input to array (split by comma if multiple values)
+        if (heritageBestTimeText.trim()) {
+          bestTimeToVisitValue = heritageBestTimeText.split(',').map(s => s.trim()).filter(Boolean);
+        }
+      } else {
+        // For other categories (food, nature), use checkbox selections
+        bestTimeToVisitValue = formData.bestTimeToVisit.length > 0 ? formData.bestTimeToVisit : null;
+      }
+
+      // Format operating hours for resorts based on availability
+      let operatingHoursValue: string;
+      if (categoryValue === 'resorts') {
+        if (resortAvailabilityDay && resortAvailabilityNight) {
+          operatingHoursValue = '24/7';
+        } else if (resortAvailabilityDay) {
+          operatingHoursValue = 'Day Only';
+        } else if (resortAvailabilityNight) {
+          operatingHoursValue = 'Night Only';
+        } else {
+          alert('Please select at least one availability option (Day or Night)');
+          setSaving(false);
+          return;
+        }
+      } else {
+        operatingHoursValue = formData.operatingHours;
+      }
+
       // Prepare data for Supabase
       const destinationData: any = {
         name: formData.name,
@@ -273,9 +528,17 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
         location: formData.location,
         latitude: formData.latitude,
         longitude: formData.longitude,
-        operating_hours: formData.operatingHours,
-        best_time_to_visit: formData.bestTimeToVisit.length > 0 ? formData.bestTimeToVisit : null,
-        estimated_cost: formData.estimatedCost,
+        operating_hours: operatingHoursValue,
+        best_time_to_visit: bestTimeToVisitValue,
+        estimated_cost: categoryValue === 'resorts' 
+          ? (resortEntranceFeeDay.trim() && resortEntranceFeeNight.trim()
+              ? `Day: ₱${resortEntranceFeeDay.trim()}; Night: ₱${resortEntranceFeeNight.trim()}`
+              : resortEntranceFeeDay.trim()
+              ? `Day: ₱${resortEntranceFeeDay.trim()}`
+              : resortEntranceFeeNight.trim()
+              ? `Night: ₱${resortEntranceFeeNight.trim()}`
+              : '')
+          : formData.estimatedCost,
         image_url: imageUrl || null,
         accommodations: categoryValue === 'resorts' && accommodations.length > 0 ? JSON.stringify(accommodations) : null,
         // Convert rating (1-5) to popularity (0-1) for database
@@ -336,10 +599,10 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-800">
+          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">
             {destination ? 'Edit Destination' : 'Add New Destination'}
           </h2>
           <button
@@ -353,7 +616,7 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Image Upload - Device File Picker */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-gray-700 mb-2">
               Destination Image
             </label>
             <input
@@ -430,13 +693,13 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-gray-700 mb-2">
               Category *
             </label>
             <select
               value={formData.category}
               onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
               required
             >
               {categories.map(cat => (
@@ -453,7 +716,7 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
             <select
               value={formData.location}
               onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
               required
             >
               {municipalities.map(mun => (
@@ -471,7 +734,7 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
               placeholder="e.g., Poro Beach"
               required
             />
@@ -485,7 +748,7 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
               rows={4}
               placeholder="Describe the destination..."
               required
@@ -503,7 +766,7 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                 step="any"
                 value={formData.latitude}
                 onChange={(e) => setFormData(prev => ({ ...prev, latitude: parseFloat(e.target.value) || 0 }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
                 placeholder="13.6233"
                 required
               />
@@ -517,26 +780,54 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                 step="any"
                 value={formData.longitude}
                 onChange={(e) => setFormData(prev => ({ ...prev, longitude: parseFloat(e.target.value) || 0 }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
                 placeholder="123.1857"
                 required
               />
             </div>
           </div>
 
-          {/* Operating Hours */}
+          {/* Operating Hours / Availability */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Operating Hours *
+              {formData.category === 'resorts' ? 'Availability *' : 'Operating Hours *'}
             </label>
-            <input
-              type="text"
-              value={formData.operatingHours}
-              onChange={(e) => setFormData(prev => ({ ...prev, operatingHours: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              placeholder="e.g., 7:00 AM - 10:00 PM (Daily)"
-              required
-            />
+            {formData.category === 'resorts' ? (
+              // For resort category: checkboxes for Day and Night
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={resortAvailabilityDay}
+                    onChange={(e) => setResortAvailabilityDay(e.target.checked)}
+                    className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <span className="text-gray-700">Day</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={resortAvailabilityNight}
+                    onChange={(e) => setResortAvailabilityNight(e.target.checked)}
+                    className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <span className="text-gray-700">Night</span>
+                </label>
+                {!resortAvailabilityDay && !resortAvailabilityNight && (
+                  <p className="text-xs text-red-500 mt-1">Please select at least one option</p>
+                )}
+              </div>
+            ) : (
+              // For other categories: text input
+              <input
+                type="text"
+                value={formData.operatingHours}
+                onChange={(e) => setFormData(prev => ({ ...prev, operatingHours: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
+                placeholder="e.g., 7:00 AM - 10:00 PM (Daily)"
+                required
+              />
+            )}
           </div>
 
           {/* Best Time to Visit */}
@@ -544,34 +835,133 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Best Time to Visit *
             </label>
-            <div className="space-y-2">
-              {bestTimeOptions.map(option => (
-                <label key={option.value} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.bestTimeToVisit.includes(option.value)}
-                    onChange={() => handleTimeToggle(option.value)}
-                    className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                  />
-                  <span className="text-gray-700">{option.label}</span>
-                </label>
-              ))}
-            </div>
+            {formData.category === 'resorts' ? (
+              // For resort category: text input
+              <input
+                type="text"
+                value={resortBestTimeText}
+                onChange={(e) => setResortBestTimeText(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
+                placeholder="e.g., Summer, Dry Season, All Year Round"
+                required
+              />
+            ) : formData.category === 'heritage' ? (
+              // For heritage category: text input
+              <input
+                type="text"
+                value={heritageBestTimeText}
+                onChange={(e) => setHeritageBestTimeText(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
+                placeholder="e.g., Anytime, Morning, Afternoon"
+                required
+              />
+            ) : formData.category === 'nature' ? (
+              // For nature category: checkboxes with time periods
+              <div className="space-y-2">
+                {bestTimeOptionsNature.map(option => (
+                  <label key={option.value} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.bestTimeToVisit.includes(option.value)}
+                      onChange={() => handleTimeToggle(option.value)}
+                      className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <span className="text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              // For food category: checkboxes with meal times
+              <div className="space-y-2">
+                {bestTimeOptionsFood.map(option => (
+                  <label key={option.value} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.bestTimeToVisit.includes(option.value)}
+                      onChange={() => handleTimeToggle(option.value)}
+                      className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <span className="text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Estimated Cost */}
+          {/* Entrance / Estimated Cost */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estimated Cost *
+              {formData.category === 'food'
+                ? 'Estimated Cost per Person *'
+                : 'Entrance / Experience Fee *'}
             </label>
-            <input
-              type="text"
-              value={formData.estimatedCost}
-              onChange={(e) => setFormData(prev => ({ ...prev, estimatedCost: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              placeholder="e.g., ₱50-100 per person"
-              required
-            />
+            {formData.category === 'resorts' ? (
+              // For resort category: separate Day and Night fields
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Day Entrance Fee *
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 font-medium">₱</span>
+                    <input
+                      type="text"
+                      value={resortEntranceFeeDay}
+                      onChange={(e) => {
+                        // Allow only numbers
+                        const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                        setResortEntranceFeeDay(numericValue);
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      placeholder="e.g., 50"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Night Entrance Fee *
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 font-medium">₱</span>
+                    <input
+                      type="text"
+                      value={resortEntranceFeeNight}
+                      onChange={(e) => {
+                        // Allow only numbers
+                        const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                        setResortEntranceFeeNight(numericValue);
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      placeholder="e.g., 50"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // For other categories: single text input
+              <div>
+                <input
+                  type="text"
+                  value={formData.estimatedCost}
+                  onChange={(e) => setFormData(prev => ({ ...prev, estimatedCost: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
+                  placeholder={
+                    formData.category === 'food'
+                      ? 'e.g., ₱100-200 per person'
+                      : 'e.g., ₱50 entrance per person or ₱50-100 per person'
+                  }
+                  required
+                />
+                {/* Helper text for Food & Dining with format examples */}
+                {formData.category === 'food' && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Accepted formats: <span className="font-mono">₱100-200 per person</span>, <span className="font-mono">100-200</span>, <span className="font-mono">100 to 200</span>, or <span className="font-mono">100</span> (single price). "per person" is optional and will be automatically ignored by the parser.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Rating */}
@@ -622,6 +1012,7 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
             </div>
             <p className="mt-1 text-xs text-gray-500">Enter a rating from 0 to 5 (e.g., 4.9, 3.5, 5.0)</p>
           </div>
+
 
           {/* Accommodations & Cottages - Only for Resorts */}
           {formData.category === 'resorts' && (

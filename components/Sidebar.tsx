@@ -15,16 +15,26 @@ export default function Sidebar() {
   const router = useRouter()
 
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated')
-    localStorage.removeItem('adminUser')
-    router.push('/')
+    if (confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('isAuthenticated')
+      localStorage.removeItem('adminUser')
+      router.push('/')
+    }
   }
 
   return (
-    <div className="w-64 bg-primary-800 min-h-screen p-6 flex flex-col">
+    <div className="w-64 bg-gradient-to-b from-primary-800 to-primary-900 min-h-screen p-6 flex flex-col shadow-xl border-r border-primary-700">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-1">Lakbay CamSur</h1>
-        <p className="text-primary-200 text-sm">Admin Dashboard</p>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-black text-white tracking-tight">Lakbay CamSur</h1>
+        </div>
+        <p className="text-primary-200 text-base ml-[52px] font-medium">Admin Dashboard</p>
       </div>
 
       <nav className="flex-1">
@@ -43,7 +53,7 @@ export default function Sidebar() {
               }`}
             >
               <Icon size={20} />
-              <span className="font-medium">{item.name}</span>
+              <span className="font-semibold text-base">{item.name}</span>
             </button>
           )
         })}
@@ -51,10 +61,10 @@ export default function Sidebar() {
 
       <button
         onClick={handleLogout}
-        className="flex items-center gap-3 px-4 py-3 rounded-lg text-primary-200 hover:bg-primary-700 hover:text-white transition-colors"
+        className="flex items-center gap-3 px-4 py-3 rounded-lg text-primary-200 hover:bg-red-600/20 hover:text-white transition-colors border border-transparent hover:border-red-500/30 mt-auto"
       >
         <LogOut size={20} />
-        <span className="font-medium">Logout</span>
+        <span className="font-semibold text-base">Logout</span>
       </button>
     </div>
   )
