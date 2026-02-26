@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Layout from '@/components/Layout'
+import React, { useEffect, useState } from 'react'
 import { MapPin, Eye, Users, Folder } from 'lucide-react'
 import {
   getTotalDestinations,
   getTotalViews,
+  getViewsToday,
+  getViewsThisWeek,
+  getViewsThisMonth,
   getTotalVisits,
   getConfirmedVisits,
   getVisitIntents,
@@ -18,6 +20,9 @@ import {
 export default function DashboardPage() {
   const [totalDestinations, setTotalDestinations] = useState(0)
   const [totalViews, setTotalViews] = useState(0)
+  const [viewsToday, setViewsToday] = useState(0)
+  const [viewsThisWeek, setViewsThisWeek] = useState(0)
+  const [viewsThisMonth, setViewsThisMonth] = useState(0)
   const [totalVisits, setTotalVisits] = useState(0)
   const [confirmedVisits, setConfirmedVisits] = useState(0)
   const [visitIntents, setVisitIntents] = useState(0)
@@ -30,9 +35,25 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [destinations, views, visits, confirmed, intents, categories, topDests, topConfirmed, categoryViews] = await Promise.all([
+        const [
+          destinations,
+          views,
+          todayViews,
+          weekViews,
+          monthViews,
+          visits,
+          confirmed,
+          intents,
+          categories,
+          topDests,
+          topConfirmed,
+          categoryViews,
+        ] = await Promise.all([
           getTotalDestinations(),
           getTotalViews(),
+          getViewsToday(),
+          getViewsThisWeek(),
+          getViewsThisMonth(),
           getTotalVisits(),
           getConfirmedVisits(),
           getVisitIntents(),
@@ -44,6 +65,9 @@ export default function DashboardPage() {
 
         setTotalDestinations(destinations)
         setTotalViews(views)
+        setViewsToday(todayViews)
+        setViewsThisWeek(weekViews)
+        setViewsThisMonth(monthViews)
         setTotalVisits(visits)
         setConfirmedVisits(confirmed)
         setVisitIntents(intents)
@@ -80,9 +104,9 @@ export default function DashboardPage() {
 
     fetchData()
   }, [])
+
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
@@ -104,6 +128,19 @@ export default function DashboardPage() {
             </div>
             <p className="text-3xl font-bold text-gray-800 mb-1">{loading ? '...' : totalViews.toLocaleString()}</p>
             <p className="text-sm text-gray-500">Total Views</p>
+            {!loading && (
+              <div className="mt-2 text-xs text-gray-600 space-y-1">
+                <p>
+                  <span className="font-semibold text-blue-600">{viewsToday.toLocaleString()}</span> today
+                </p>
+                <p>
+                  <span className="font-semibold text-blue-600">{viewsThisWeek.toLocaleString()}</span> this week
+                </p>
+                <p>
+                  <span className="font-semibold text-blue-600">{viewsThisMonth.toLocaleString()}</span> this month
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
@@ -216,7 +253,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>
-    </Layout>
+      
   )
 }

@@ -23,6 +23,129 @@ export async function getTotalViews(): Promise<number> {
   return count || 0;
 }
 
+// Helper: get views for a specific period (day, week, month)
+async function getViewsForPeriod(period: 'day' | 'week' | 'month'): Promise<number> {
+  const now = new Date();
+  const start = new Date(now);
+
+  if (period === 'day') {
+    // Start of today
+    start.setHours(0, 0, 0, 0);
+  } else if (period === 'week') {
+    // Start of this week (Monday)
+    const day = start.getDay(); // 0 = Sunday, 1 = Monday, ...
+    const diffToMonday = (day + 6) % 7; // Convert so Monday is 0
+    start.setDate(start.getDate() - diffToMonday);
+    start.setHours(0, 0, 0, 0);
+  } else if (period === 'month') {
+    // Start of this month
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+  }
+
+  const { count, error } = await supabase
+    .from('destination_views')
+    .select('*', { count: 'exact', head: true })
+    .gte('viewed_at', start.toISOString());
+
+  if (error) {
+    console.error(`Error fetching views for period "${period}":`, error);
+    return 0;
+  }
+
+  return count || 0;
+}
+
+// Views in specific periods
+export function getViewsToday(): Promise<number> {
+  return getViewsForPeriod('day');
+}
+
+export function getViewsThisWeek(): Promise<number> {
+  return getViewsForPeriod('week');
+}
+
+export function getViewsThisMonth(): Promise<number> {
+  return getViewsForPeriod('month');
+}
+
+// -----------------------------
+// Export helpers (CSV)
+// -----------------------------
+
+function getStartDateForPeriod(period: 'day' | 'week' | 'month' | 'all'): Date | null {
+  if (period === 'all') return null
+
+  const now = new Date()
+  const start = new Date(now)
+
+  if (period === 'day') {
+    start.setHours(0, 0, 0, 0)
+    return start
+  }
+
+  if (period === 'week') {
+    // Start of this week (Monday)
+    const day = start.getDay() // 0 = Sunday
+    const diffToMonday = (day + 6) % 7
+    start.setDate(start.getDate() - diffToMonday)
+    start.setHours(0, 0, 0, 0)
+    return start
+  }
+
+  // month
+  start.setDate(1)
+  start.setHours(0, 0, 0, 0)
+  return start
+}
+
+export type ExportPeriod = 'day' | 'week' | 'month' | 'all'
+
+export async function exportDestinationViews(period: ExportPeriod = 'all') {
+  const start = getStartDateForPeriod(period)
+  let query = supabase
+    .from('destination_views')
+    .select('destination_name,category,municipality,viewed_at,user_device_id')
+    .order('viewed_at', { ascending: false })
+    .limit(10000)
+
+  if (start) query = query.gte('viewed_at', start.toISOString())
+
+  const { data, error } = await query
+  if (error) throw error
+  return data || []
+}
+
+export async function exportDestinationVisits(period: ExportPeriod = 'all') {
+  const start = getStartDateForPeriod(period)
+  let query = supabase
+    .from('destination_visits')
+    .select('destination_name,category,municipality,visited_at,visit_type,visit_method,latitude,longitude,user_device_id')
+    .order('visited_at', { ascending: false })
+    .limit(10000)
+
+  if (start) query = query.gte('visited_at', start.toISOString())
+
+  const { data, error } = await query
+  if (error) throw error
+  return data || []
+}
+
+export async function exportUserInteractions(period: ExportPeriod = 'all') {
+  const start = getStartDateForPeriod(period)
+  let query = supabase
+    .from('user_interactions')
+    .select('interaction_type,destination_name,category,municipality,created_at,user_device_id,metadata')
+    .order('created_at', { ascending: false })
+    .limit(10000)
+
+  if (start) query = query.gte('created_at', start.toISOString())
+
+  const { data, error } = await query
+  if (error) throw error
+  return data || []
+}
+
 // Get total visits count (all types)
 export async function getTotalVisits(): Promise<number> {
   const { count, error } = await supabase
@@ -306,4 +429,67 @@ export async function getCategoryCount(): Promise<number> {
   
   const uniqueCategories = new Set(data?.map(d => d.category).filter(Boolean));
   return uniqueCategories.size;
+}
+
+// Get category statistics (destinations count, views, visits per category)
+export async function getCategoryStatistics() {
+  // Get all destinations with categories
+  const { data: destinations, error: destError } = await supabase
+    .from('destinations')
+    .select('category, name');
+  
+  // Get views by category
+  const { data: views, error: viewsError } = await supabase
+    .from('destination_views')
+    .select('category');
+  
+  // Get visits by category
+  const { data: visits, error: visitsError } = await supabase
+    .from('destination_visits')
+    .select('category');
+  
+  if (destError || viewsError || visitsError) {
+    console.error('Error fetching category statistics:', destError || viewsError || visitsError);
+    return [];
+  }
+  
+  // Aggregate by category
+  const categoryStats: Record<string, {
+    name: string;
+    destinations: number;
+    totalViews: number;
+    totalVisits: number;
+  }> = {};
+  
+  // Count destinations per category
+  destinations?.forEach((dest) => {
+    const category = dest.category || 'Unknown';
+    if (!categoryStats[category]) {
+      categoryStats[category] = {
+        name: category,
+        destinations: 0,
+        totalViews: 0,
+        totalVisits: 0,
+      };
+    }
+    categoryStats[category].destinations += 1;
+  });
+  
+  // Count views per category
+  views?.forEach((view) => {
+    const category = view.category || 'Unknown';
+    if (categoryStats[category]) {
+      categoryStats[category].totalViews += 1;
+    }
+  });
+  
+  // Count visits per category
+  visits?.forEach((visit) => {
+    const category = visit.category || 'Unknown';
+    if (categoryStats[category]) {
+      categoryStats[category].totalVisits += 1;
+    }
+  });
+  
+  return Object.values(categoryStats);
 }

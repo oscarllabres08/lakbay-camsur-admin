@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Layout from '@/components/Layout'
 import { Plus, Search, Edit, Trash2, MapPin, Eye, Users, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import AddDestinationModal from '@/components/AddDestinationModal'
 import { supabase } from '@/lib/supabase'
@@ -38,7 +37,6 @@ const categoryLabels: Record<string, string> = {
 }
 
 const categories = ['All', 'Nature & Adventure', 'Food & Dining', 'Heritage & Culture', 'Resort & Recreation']
-const municipalities = ['All', 'Naga', 'Pili', 'Libmanan']
 
 export default function DestinationsPage() {
   const [destinations, setDestinations] = useState<Destination[]>([])
@@ -61,7 +59,40 @@ export default function DestinationsPage() {
 
       if (error) throw error
 
-      setDestinations(data || [])
+      // Analytics (views/visits) are recorded in separate tables.
+      // We read aggregated counts from DB views and merge them into destinations for display.
+      const [
+        { data: viewStats, error: viewStatsError },
+        { data: visitStats, error: visitStatsError },
+      ] = await Promise.all([
+        supabase.from('destination_stats').select('destination_name,total_views'),
+        supabase.from('visit_stats').select('destination_name,total_visits'),
+      ])
+
+      if (viewStatsError) {
+        console.error('Error fetching destination_stats:', viewStatsError)
+      }
+      if (visitStatsError) {
+        console.error('Error fetching visit_stats:', visitStatsError)
+      }
+
+      const viewsByName = new Map<string, number>()
+      viewStats?.forEach((row: any) => {
+        viewsByName.set(row.destination_name, Number(row.total_views ?? 0))
+      })
+
+      const visitsByName = new Map<string, number>()
+      visitStats?.forEach((row: any) => {
+        visitsByName.set(row.destination_name, Number(row.total_visits ?? 0))
+      })
+
+      const merged = (data || []).map((dest: any) => ({
+        ...dest,
+        views: viewsByName.get(dest.name) ?? 0,
+        visits: visitsByName.get(dest.name) ?? 0,
+      }))
+
+      setDestinations(merged)
     } catch (error: any) {
       console.error('Error fetching destinations:', error)
       alert('Failed to load destinations: ' + error.message)
@@ -73,6 +104,15 @@ export default function DestinationsPage() {
   useEffect(() => {
     fetchDestinations()
   }, [])
+
+  // Dynamic list of municipalities for filters and modal
+  const municipalityOptions = ['All', ...Array.from(
+    new Set(
+      destinations
+        .map(d => d.location)
+        .filter((loc) => typeof loc === 'string' && loc.trim().length > 0)
+    )
+  ).sort()]
 
   const filteredDestinations = destinations.filter((dest) => {
     const matchesSearch = dest.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -170,7 +210,7 @@ export default function DestinationsPage() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         {/* Header with Add Button */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -222,7 +262,7 @@ export default function DestinationsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Municipality</label>
                 <div className="flex gap-2 flex-wrap">
-                  {municipalities.map((mun) => (
+                  {municipalityOptions.map((mun) => (
                     <button
                       key={mun}
                       onClick={() => setSelectedMunicipality(mun)}
@@ -405,8 +445,9 @@ export default function DestinationsPage() {
           onClose={closeModal}
           onSave={editingDestination ? handleEditDestination : handleAddDestination}
           destination={editingDestination as any}
+          municipalities={municipalityOptions.filter((m) => m !== 'All')}
         />
       )}
-    </Layout>
+    </>
   )
 }

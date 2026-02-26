@@ -31,6 +31,7 @@ interface Props {
   onClose: () => void
   onSave: (destination: Destination) => void
   destination?: Destination | null
+  municipalities?: string[]
 }
 
 const categories = [
@@ -40,7 +41,7 @@ const categories = [
   { label: 'Resort & Recreation', value: 'resorts' },
 ]
 
-const municipalities = ['Naga', 'Pili', 'Libmanan']
+const defaultMunicipalities = ['Naga', 'Pili', 'Libmanan']
 
 // Helper to get category value from label
 const getCategoryValue = (label: string): string => {
@@ -77,8 +78,16 @@ const accommodationTypes = [
   'Other',
 ]
 
-export default function AddDestinationModal({ isOpen, onClose, onSave, destination }: Props) {
+export default function AddDestinationModal({ isOpen, onClose, onSave, destination, municipalities: municipalitiesProp }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Final list of municipalities: seed defaults + any provided from parent
+  const municipalities = Array.from(
+    new Set([
+      ...defaultMunicipalities,
+      ...(municipalitiesProp || []),
+    ])
+  ).sort()
   
   // Initialize form data - handle both database format and form format
   const getInitialCategory = () => {
@@ -121,6 +130,16 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
     accommodations: initialAccommodations,
     rating: destination?.rating || undefined,
   })
+
+  // Municipality handling: allow admin to use predefined list or type a custom one
+  const [useCustomMunicipality, setUseCustomMunicipality] = useState(
+    destination ? !municipalities.includes(destination.location) : false
+  )
+  const [customMunicipality, setCustomMunicipality] = useState(
+    destination && !municipalities.includes(destination.location)
+      ? destination.location
+      : ''
+  )
 
 
   // For resort category, bestTimeToVisit is a text input (string)
@@ -705,15 +724,46 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
               Municipality *
             </label>
             <select
-              value={formData.location}
-              onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+              value={useCustomMunicipality ? '__other' : formData.location}
+              onChange={(e) => {
+                const value = e.target.value
+                if (value === '__other') {
+                  setUseCustomMunicipality(true)
+                  setCustomMunicipality('')
+                  setFormData(prev => ({ ...prev, location: '' }))
+                } else {
+                  setUseCustomMunicipality(false)
+                  setFormData(prev => ({ ...prev, location: value }))
+                }
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
               required
             >
-              {municipalities.map(mun => (
+              {municipalities.map((mun: string) => (
                 <option key={mun} value={mun}>{mun}</option>
               ))}
+              <option value="__other">Other (type municipality)</option>
             </select>
+
+            {useCustomMunicipality && (
+              <div className="mt-2">
+                <input
+                  type="text"
+                  value={customMunicipality}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setCustomMunicipality(value)
+                    setFormData(prev => ({ ...prev, location: value }))
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
+                  placeholder="e.g., Gainza"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  This name will be used in filters and analytics (e.g., for Visitor Trends and exports).
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Name */}
