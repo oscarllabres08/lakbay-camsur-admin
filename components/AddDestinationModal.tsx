@@ -67,17 +67,14 @@ const bestTimeOptionsNature = [
 ]
 
 const accommodationTypes = [
-  'Small Kubo',
+  'Umbrella with table and chair',
+  'Small kubo',
   'Big Kubo',
-  'Table w/ Umbrella',
-  'Cottage',
+  'Small cottage',
   'Big Cottage',
-  'Umbrella Type',
-  'Umbrella and Chair',
-  'Umbrella w/ Table',
-  'Tent',
-  'Big Tent',
-  'Gazebo Round Table',
+  'Regular Room',
+  'Airconditioned Room',
+  'Other',
 ]
 
 export default function AddDestinationModal({ isOpen, onClose, onSave, destination }: Props) {
@@ -516,6 +513,18 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
           setSaving(false);
           return;
         }
+        
+        // Validate that entrance fees are provided for selected availability options
+        if (resortAvailabilityDay && !resortEntranceFeeDay.trim()) {
+          alert('Please enter the Day Entrance Fee');
+          setSaving(false);
+          return;
+        }
+        if (resortAvailabilityNight && !resortEntranceFeeNight.trim()) {
+          alert('Please enter the Night Entrance Fee');
+          setSaving(false);
+          return;
+        }
       } else {
         operatingHoursValue = formData.operatingHours;
       }
@@ -637,7 +646,7 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                     alt="Preview"
                     className="max-h-64 mx-auto rounded-lg"
                   />
-                  <div className="mt-4 flex gap-2 justify-center">
+                  <div className="mt-4 flex justify-center">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -647,24 +656,6 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                       className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm"
                     >
                       Change Image
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleRemovePhoto()
-                      }}
-                      disabled={removingImage}
-                      className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {removingImage ? (
-                        <>
-                          <Loader2 className="animate-spin" size={16} />
-                          Removing...
-                        </>
-                      ) : (
-                        'Remove Photo'
-                      )}
                     </button>
                   </div>
                   {uploading && (
@@ -896,48 +887,52 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                 : 'Entrance / Experience Fee *'}
             </label>
             {formData.category === 'resorts' ? (
-              // For resort category: separate Day and Night fields
+              // For resort category: separate Day and Night fields (only show if corresponding availability is checked)
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Day Entrance Fee *
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 font-medium">₱</span>
-                    <input
-                      type="text"
-                      value={resortEntranceFeeDay}
-                      onChange={(e) => {
-                        // Allow only numbers
-                        const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                        setResortEntranceFeeDay(numericValue);
-                      }}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                      placeholder="e.g., 50"
-                      required
-                    />
+                {resortAvailabilityDay && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      Day Entrance Fee *
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600 font-medium">₱</span>
+                      <input
+                        type="text"
+                        value={resortEntranceFeeDay}
+                        onChange={(e) => {
+                          // Allow only numbers
+                          const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                          setResortEntranceFeeDay(numericValue);
+                        }}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        placeholder="e.g., 50"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Night Entrance Fee *
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 font-medium">₱</span>
-                    <input
-                      type="text"
-                      value={resortEntranceFeeNight}
-                      onChange={(e) => {
-                        // Allow only numbers
-                        const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                        setResortEntranceFeeNight(numericValue);
-                      }}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                      placeholder="e.g., 50"
-                      required
-                    />
+                )}
+                {resortAvailabilityNight && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      Night Entrance Fee *
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600 font-medium">₱</span>
+                      <input
+                        type="text"
+                        value={resortEntranceFeeNight}
+                        onChange={(e) => {
+                          // Allow only numbers
+                          const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                          setResortEntranceFeeNight(numericValue);
+                        }}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        placeholder="e.g., 50"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ) : (
               // For other categories: single text input
@@ -1053,17 +1048,56 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                           <label className="block text-xs font-medium text-gray-600 mb-1">
                             Type *
                           </label>
-                          <select
-                            value={acc.type}
-                            onChange={(e) => handleAccommodationChange(index, 'type', e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                            required
-                          >
-                            <option value="">Select type...</option>
-                            {accommodationTypes.map(type => (
-                              <option key={type} value={type}>{type}</option>
-                            ))}
-                          </select>
+                          {(() => {
+                            // Check if current type is "Other" or a custom value (not in the predefined list)
+                            const isCustomType = acc.type === 'Other' || (!accommodationTypes.includes(acc.type) && acc.type !== '');
+                            
+                            if (isCustomType) {
+                              return (
+                                <div className="space-y-2">
+                                  <input
+                                    type="text"
+                                    value={acc.type === 'Other' ? '' : acc.type}
+                                    onChange={(e) => {
+                                      // Store custom value directly in type field
+                                      handleAccommodationChange(index, 'type', e.target.value);
+                                    }}
+                                    placeholder="Enter accommodation type..."
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                                    required
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAccommodationChange(index, 'type', '')}
+                                    className="text-xs text-primary-600 hover:text-primary-700 transition"
+                                  >
+                                    ← Back to dropdown
+                                  </button>
+                                </div>
+                              );
+                            }
+                            
+                            return (
+                              <select
+                                value={acc.type}
+                                onChange={(e) => {
+                                  if (e.target.value === 'Other') {
+                                    // When "Other" is selected, set to "Other" to trigger showing input
+                                    handleAccommodationChange(index, 'type', 'Other');
+                                  } else {
+                                    handleAccommodationChange(index, 'type', e.target.value);
+                                  }
+                                }}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                                required
+                              >
+                                <option value="">Select type...</option>
+                                {accommodationTypes.map(type => (
+                                  <option key={type} value={type}>{type}</option>
+                                ))}
+                              </select>
+                            );
+                          })()}
                         </div>
                         
                         <div>
@@ -1075,7 +1109,7 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                             value={acc.capacity}
                             onChange={(e) => handleAccommodationChange(index, 'capacity', e.target.value)}
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                            placeholder="e.g., 2-6 PAX"
+                            placeholder="e.g., 2-4"
                             required
                           />
                         </div>
