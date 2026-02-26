@@ -61,7 +61,7 @@ export default function LoginPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-[#F4F1FF] via-white to-[#F4F1FF] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary-900/10 via-white to-secondary-50 relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-100/30 rounded-full blur-3xl"></div>

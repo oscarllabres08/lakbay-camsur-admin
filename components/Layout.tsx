@@ -21,6 +21,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     setAdminUser(user)
   }, [router, pathname])
 
+  const handleLogout = () => {
+    // Clear simple local auth flags used by the demo admin panel
+    localStorage.removeItem('isAuthenticated')
+    localStorage.removeItem('adminUser')
+    router.push('/')
+  }
+
   const pageTitles: Record<string, string> = {
     '/dashboard': 'Dashboard',
     '/destinations': 'Destinations',
@@ -50,6 +57,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <p className="text-sm text-gray-500">Administrator</p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="hidden sm:inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-primary-600 text-white hover:bg-primary-700 transition-colors shadow-sm border border-primary-700/80"
+            >
+              Log out
+            </button>
           </div>
         </header>
         <main className="flex-1 p-4 lg:p-8 overflow-auto">{children}</main>
