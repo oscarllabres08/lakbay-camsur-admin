@@ -131,6 +131,13 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
     rating: destination?.rating || undefined,
   })
 
+  // "Always open" toggle for non-resort categories.
+  // If existing data contains 24/7-style text, default this to true.
+  const initialAlwaysOpen =
+    destination?.operatingHours &&
+    /24\/7|24-7|24 hours|24hrs|always open/i.test(destination.operatingHours);
+  const [alwaysOpen, setAlwaysOpen] = useState<boolean>(!!initialAlwaysOpen)
+
   // Municipality handling: allow admin to use predefined list or type a custom one
   const [useCustomMunicipality, setUseCustomMunicipality] = useState(
     destination ? !municipalities.includes(destination.location) : false
@@ -545,7 +552,12 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
           return;
         }
       } else {
-        operatingHoursValue = formData.operatingHours;
+        // For non-resorts, allow an "Always open" toggle
+        if (alwaysOpen) {
+          operatingHoursValue = '24/7';
+        } else {
+          operatingHoursValue = formData.operatingHours;
+        }
       }
 
       // Prepare data for Supabase
@@ -862,15 +874,29 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                 )}
               </div>
             ) : (
-              // For other categories: text input
-              <input
-                type="text"
-                value={formData.operatingHours}
-                onChange={(e) => setFormData(prev => ({ ...prev, operatingHours: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
-                placeholder="e.g., 7:00 AM - 10:00 PM (Daily)"
-                required
-              />
+              // For other categories: "Always open" toggle + text input
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={alwaysOpen}
+                    onChange={(e) => setAlwaysOpen(e.target.checked)}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Always open (24/7)
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.operatingHours}
+                  onChange={(e) => setFormData(prev => ({ ...prev, operatingHours: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
+                  placeholder="e.g., 7:00 AM - 10:00 PM (Daily)"
+                  disabled={alwaysOpen}
+                  required={!alwaysOpen}
+                />
+              </div>
             )}
           </div>
 
