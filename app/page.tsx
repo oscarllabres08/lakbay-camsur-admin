@@ -40,9 +40,9 @@ export default function LoginPage() {
         return
       }
 
-      // Successful login – store simple flag on the client
-      localStorage.setItem('isAuthenticated', 'true')
-      localStorage.setItem('adminUser', username)
+      // Successful login – store in sessionStorage (clears when tab closes)
+      sessionStorage.setItem('isAuthenticated', 'true')
+      sessionStorage.setItem('adminUser', username)
       router.push('/dashboard')
     } catch (err) {
       console.error('Unexpected login error:', err)
@@ -53,65 +53,55 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
-    // Check if already logged in
-    const isAuthenticated = localStorage.getItem('isAuthenticated')
+    // Check if already logged in (using sessionStorage)
+    const isAuthenticated = sessionStorage.getItem('isAuthenticated')
     if (isAuthenticated === 'true') {
       router.push('/dashboard')
     }
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary-900/10 via-white to-secondary-50 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-[#E0F2FE] via-[#F0F9FF] to-[#ECFDF5] relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-100/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary-100/30 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent-100/20 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#2EC4B6]/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#0F4C5C]/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#06B6D4]/15 rounded-full blur-3xl"></div>
       </div>
 
       <div className="w-full max-w-md relative z-10">
         {/* Header Section */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-lg mb-4">
-            <svg
-              className="w-8 h-8 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
+        <div className="text-center mb-12">
+          <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4] rounded-2xl shadow-xl transform hover:scale-105 transition-transform">
+              <span className="text-white font-bold text-2xl font-poppins">LC</span>
+            </div>
+            <span className="inline-flex items-center px-5 py-2 rounded-full text-xs font-bold tracking-wider bg-gradient-to-r from-[#0F4C5C]/10 to-[#2EC4B6]/10 text-[#0F4C5C] border-2 border-[#2EC4B6]/30 uppercase shadow-sm">
+              Admin Portal
+            </span>
           </div>
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider bg-primary-50 text-primary-700 border border-primary-200 uppercase shadow-sm">
-            Admin Portal
-          </span>
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 mt-5 mb-2">
-            Lakbay Cam Sur
+          <h1 className="text-5xl font-black tracking-tight mb-3 bg-gradient-to-r from-[#0F172A] via-[#0F4C5C] to-[#2EC4B6] bg-clip-text text-transparent font-poppins">
+            Lakbay CamSur
           </h1>
-          <p className="text-gray-600 text-base font-medium">
+          <p className="text-[#64748B] text-lg font-semibold mb-2">
             Admin Dashboard
           </p>
-          <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">
+          <p className="text-[#94A3B8] text-sm max-w-xs mx-auto">
             Secure access to manage destinations and content
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,76,92,0.3)] p-10 border border-white/50 relative overflow-hidden">
+        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_30px_80px_-15px_rgba(15,76,92,0.4)] p-10 border-2 border-[#2EC4B6]/20 relative overflow-hidden">
           {/* Subtle gradient overlay */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 via-secondary-400 to-accent-400"></div>
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
           
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <h2 className="text-3xl font-black text-[#0F172A] mb-3 flex items-center gap-3 font-poppins">
               <span>Welcome Back</span>
-              <span className="text-2xl">👋</span>
+              <span className="text-3xl">👋</span>
             </h2>
-            <p className="text-gray-600 text-sm">
+            <p className="text-[#64748B] text-base font-medium">
               Sign in to continue to the admin dashboard
             </p>
           </div>
@@ -121,16 +111,16 @@ export default function LoginPage() {
             <div className="space-y-2">
               <label
                 htmlFor="username"
-                className="block text-xs font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2"
+                className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider flex items-center gap-2 mb-2"
               >
-                <svg className="w-3.5 h-3.5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#0F4C5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 Username
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-[#64748B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
@@ -139,7 +129,7 @@ export default function LoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 outline-none transition-all duration-200 bg-white text-sm placeholder:text-gray-400 hover:border-gray-300"
+                  className="w-full pl-12 pr-4 py-4 border-2 border-[#E2E8F0] rounded-xl focus:ring-2 focus:ring-[#2EC4B6]/50 focus:border-[#2EC4B6] outline-none transition-all duration-200 bg-white text-base placeholder:text-[#94A3B8] hover:border-[#CBD5E1] font-medium"
                   placeholder="Enter your username"
                   required
                 />
@@ -150,16 +140,16 @@ export default function LoginPage() {
             <div className="space-y-2">
               <label
                 htmlFor="password"
-                className="block text-xs font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2"
+                className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider flex items-center gap-2 mb-2"
               >
-                <svg className="w-3.5 h-3.5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#0F4C5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-[#64748B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
@@ -168,7 +158,7 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 outline-none transition-all duration-200 bg-white text-sm placeholder:text-gray-400 hover:border-gray-300"
+                  className="w-full pl-12 pr-4 py-4 border-2 border-[#E2E8F0] rounded-xl focus:ring-2 focus:ring-[#2EC4B6]/50 focus:border-[#2EC4B6] outline-none transition-all duration-200 bg-white text-base placeholder:text-[#94A3B8] hover:border-[#CBD5E1] font-medium"
                   placeholder="Enter your password"
                   required
                 />
@@ -183,32 +173,32 @@ export default function LoginPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3.5 rounded-xl text-sm flex items-center gap-2 fade-in">
+              <div className="bg-red-50 border-2 border-red-300 text-red-700 px-5 py-4 rounded-xl text-sm flex items-center gap-3 fade-in shadow-sm">
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>{error}</span>
+                <span className="font-semibold">{error}</span>
               </div>
             )}
 
             {/* Default Credentials Box */}
-            <div className="bg-gradient-to-br from-primary-50 to-primary-100/50 border-2 border-primary-200 text-primary-900 px-5 py-4 rounded-xl text-xs shadow-sm">
+            <div className="bg-gradient-to-br from-[#0F4C5C]/10 via-[#2EC4B6]/10 to-[#06B6D4]/10 border-2 border-[#2EC4B6]/30 text-[#0F4C5C] px-6 py-5 rounded-xl text-sm shadow-lg">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 mt-0.5">
-                  <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-[#0F4C5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold mb-2 text-primary-800">Default Credentials (Temporary)</p>
-                  <div className="space-y-1.5">
-                    <p className="flex items-center gap-2">
-                      <span className="font-semibold text-primary-700">Username:</span>
-                      <code className="bg-white/80 px-2 py-0.5 rounded-md font-mono text-primary-900 font-semibold">admin</code>
+                  <p className="font-black mb-3 text-[#0F172A] text-base">Default Credentials (Temporary)</p>
+                  <div className="space-y-2">
+                    <p className="flex items-center gap-3">
+                      <span className="font-bold text-[#0F4C5C]">Username:</span>
+                      <code className="bg-white/90 px-3 py-1.5 rounded-lg font-mono text-[#0F172A] font-bold text-sm shadow-sm">admin</code>
                     </p>
-                    <p className="flex items-center gap-2">
-                      <span className="font-semibold text-primary-700">Password:</span>
-                      <code className="bg-white/80 px-2 py-0.5 rounded-md font-mono text-primary-900 font-semibold">admin123</code>
+                    <p className="flex items-center gap-3">
+                      <span className="font-bold text-[#0F4C5C]">Password:</span>
+                      <code className="bg-white/90 px-3 py-1.5 rounded-lg font-mono text-[#0F172A] font-bold text-sm shadow-sm">admin123</code>
                     </p>
                   </div>
                 </div>
@@ -219,7 +209,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-primary-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 text-sm tracking-wide uppercase flex items-center justify-center gap-2 group"
+              className="w-full bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4] hover:from-[#0D3F4D] hover:via-[#25A396] hover:to-[#0891B2] disabled:opacity-60 disabled:cursor-not-allowed text-white font-black py-5 px-6 rounded-xl transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:translate-y-0 text-base tracking-wide uppercase flex items-center justify-center gap-2 group font-poppins"
             >
               {isLoading ? (
                 <>
@@ -241,12 +231,12 @@ export default function LoginPage() {
           </form>
 
           {/* Footer */}
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <p className="text-[11px] text-center text-gray-400 flex items-center justify-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mt-8 pt-6 border-t border-[#E2E8F0]">
+            <p className="text-xs text-center text-[#94A3B8] flex items-center justify-center gap-2 font-medium">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              Lakbay Cam Sur Admin Panel &mdash; internal use only
+              Lakbay CamSur Admin Panel &mdash; internal use only
             </p>
           </div>
         </div>

@@ -5,10 +5,11 @@ import { Eye, Users, TrendingUp, Loader2, Download } from 'lucide-react'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import {
   getMostViewedDestinations,
+  getMostConfirmedVisits,
   getMostVisitedDestinations,
   getMonthlyTrends,
   getViewsByCategory,
-  getVisitsByCategory,
+  getVisitBreakdownByCategory,
   exportDestinationViews,
   exportDestinationVisits,
   exportUserInteractions,
@@ -31,13 +32,20 @@ const categoryColors: Record<string, string> = {
 
 export default function AnalyticsPage() {
   const [mostViewed, setMostViewed] = useState<Array<{ name: string; category: string; views: number }>>([])
-  const [mostVisited, setMostVisited] = useState<Array<{ name: string; category: string; visits: number }>>([])
-  const [visitorTrends, setVisitorTrends] = useState<Array<{ month: string; views: number; visits: number }>>([])
+  const [mostConfirmed, setMostConfirmed] = useState<Array<{ name: string; category: string; visits: number }>>([])
+  const [mostIntents, setMostIntents] = useState<Array<{ name: string; category: string; intents: number }>>([])
+  const [visitorTrends, setVisitorTrends] = useState<Array<{ month: string; views: number; intents: number; confirmed: number }>>([])
   const [categoryViews, setCategoryViews] = useState<Array<{ name: string; value: number; views: number; color: string }>>([])
-  const [categoryPerformance, setCategoryPerformance] = useState<Array<{ category: string; views: number; visits: number }>>([])
+  const [categoryPerformance, setCategoryPerformance] = useState<Array<{ category: string; views: number; intents: number; confirmed: number }>>([])
   const [loading, setLoading] = useState(true)
   const [exportPeriod, setExportPeriod] = useState<ExportPeriod>('month')
   const [exporting, setExporting] = useState(false)
+  const now = new Date()
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth()) // 0 = Jan
+
+  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const yearOptions = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2]
 
   const toCsv = (rows: any[]) => {
     if (!rows || rows.length === 0) return ''
@@ -93,22 +101,35 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [viewed, visited, trends, viewsByCat, visitsByCat] = await Promise.all([
+        const [viewed, visited, confirmedTop, trends, viewsByCat, visitBreakdownByCat] = await Promise.all([
           getMostViewedDestinations(5),
           getMostVisitedDestinations(5),
+          getMostConfirmedVisits(5),
           getMonthlyTrends(6),
-          getViewsByCategory(),
-          getVisitsByCategory(),
+          getViewsByCategory(selectedYear, selectedMonth),
+          getVisitBreakdownByCategory(selectedYear, selectedMonth),
         ])
 
         setMostViewed(viewed)
-        setMostVisited(visited.map(v => ({ name: v.name, category: v.category, visits: v.visits })))
+        setMostConfirmed(confirmedTop.map(v => ({ name: v.name, category: v.category, visits: v.visits })))
+
+        // Intents = navigation + maps_view (derived from overall visits aggregation)
+        const intentOnly = visited
+          .map((v: any) => ({
+            name: v.name,
+            category: v.category,
+            intents: Math.max(0, (v.visits || 0) - (v.confirmed || 0)),
+          }))
+          .sort((a: any, b: any) => b.intents - a.intents)
+          .slice(0, 5)
+        setMostIntents(intentOnly)
 
         // Format monthly trends - use short month names
         const formattedTrends = trends.map(t => ({
           month: t.month.split(' ')[0], // Just the month name (Jan, Feb, etc.)
           views: t.views,
-          visits: t.visits,
+          intents: (t as any).intents || 0,
+          confirmed: (t as any).confirmed || 0,
         }))
         setVisitorTrends(formattedTrends.length > 0 ? formattedTrends : [])
 
@@ -122,13 +143,25 @@ export default function AnalyticsPage() {
         }))
         setCategoryViews(categoryViewsData)
 
-        // Create category performance data
-        const visitsMap = new Map(visitsByCat.map(v => [v.name, v.visits]))
-        const performanceData = viewsByCat.map(cat => ({
-          category: cat.name,
-          views: cat.views,
-          visits: visitsMap.get(cat.name) || 0,
-        }))
+        // Create category performance data (union of categories with views or visits)
+        const viewsMap = new Map(viewsByCat.map((c: any) => [c.name, c.views]))
+        const visitsMap = new Map(visitBreakdownByCat.map((v: any) => [v.name, v]))
+
+        const categories = Array.from(new Set([
+          ...Array.from(viewsMap.keys()),
+          ...Array.from(visitsMap.keys()),
+        ]))
+
+        const performanceData = categories.map((categoryName) => {
+          const visitRow: any = visitsMap.get(categoryName) || { intents: 0, confirmed: 0 }
+          return {
+            category: categoryName,
+            views: viewsMap.get(categoryName) || 0,
+            intents: visitRow.intents || 0,
+            confirmed: visitRow.confirmed || 0,
+          }
+        })
+
         setCategoryPerformance(performanceData)
       } catch (error) {
         console.error('Error fetching analytics data:', error)
@@ -138,7 +171,7 @@ export default function AnalyticsPage() {
     }
 
     fetchData()
-  }, [])
+  }, [selectedYear, selectedMonth])
 
   if (loading) {
     return (
@@ -159,7 +192,7 @@ export default function AnalyticsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold text-gray-800 tracking-tight">Analytics</h2>
-            <p className="text-gray-500 mt-1 text-base">Views, visits, and interaction insights</p>
+            <p className="text-gray-500 mt-1 text-base">Views, visit intents (attempts), and confirmed visits</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -190,7 +223,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
         {/* Top Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Most Viewed Destinations */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="flex items-center gap-3 mb-4">
@@ -222,22 +255,22 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Most Visited Destinations */}
+          {/* Most Confirmed Visits */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
                 <Users className="text-teal-600" size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-800">Most Visited Destinations</h3>
-                <p className="text-sm text-gray-500">Top performing by visits</p>
+                <h3 className="text-lg font-bold text-gray-800">Most Confirmed Visits</h3>
+                <p className="text-sm text-gray-500">Actual arrivals (geofence confirmed)</p>
               </div>
             </div>
             <div className="space-y-3">
-              {mostVisited.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No visits data yet</p>
+              {mostConfirmed.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No confirmed visits yet</p>
               ) : (
-                mostVisited.map((dest, index) => (
+                mostConfirmed.map((dest, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex-1">
                     <p className="font-semibold text-gray-800">{dest.name}</p>
@@ -245,10 +278,41 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-teal-600">{dest.visits.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">visits</p>
+                    <p className="text-xs text-gray-500">confirmed</p>
                   </div>
                 </div>
               ))
+              )}
+            </div>
+          </div>
+
+          {/* Most Visit Intents */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="text-orange-600" size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">Most Visit Intents</h3>
+                <p className="text-sm text-gray-500">Attempts (tap Navigate / Open in Maps)</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {mostIntents.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No intent data yet</p>
+              ) : (
+                mostIntents.map((dest, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800">{dest.name}</p>
+                      <p className="text-sm text-gray-500">{dest.category}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-orange-600">{dest.intents.toLocaleString()}</p>
+                      <p className="text-xs text-gray-500">intents</p>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -262,7 +326,7 @@ export default function AnalyticsPage() {
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-800">Visitor Trends</h3>
-              <p className="text-sm text-gray-500">Monthly views and visits over time</p>
+              <p className="text-sm text-gray-500">Monthly views, intents (attempts), and confirmed visits</p>
             </div>
           </div>
           {visitorTrends.length === 0 ? (
@@ -276,6 +340,14 @@ export default function AnalyticsPage() {
               <XAxis dataKey="month" stroke="#6b7280" />
               <YAxis stroke="#6b7280" />
               <Tooltip
+                formatter={(value: any, name: any) => {
+                  const map: Record<string, string> = {
+                    views: 'Views',
+                    intents: 'Visit Intents (Attempts)',
+                    confirmed: 'Confirmed Visits',
+                  }
+                  return [Number(value || 0).toLocaleString(), map[String(name)] || String(name)]
+                }}
                 contentStyle={{
                   backgroundColor: '#fff',
                   border: '1px solid #e5e7eb',
@@ -293,11 +365,19 @@ export default function AnalyticsPage() {
               />
               <Line
                 type="monotone"
-                dataKey="visits"
+                dataKey="intents"
+                stroke="#f97316"
+                strokeWidth={2}
+                dot={{ fill: '#f97316', r: 4 }}
+                name="Visit Intents (Attempts)"
+              />
+              <Line
+                type="monotone"
+                dataKey="confirmed"
                 stroke="#14b8a6"
                 strokeWidth={2}
                 dot={{ fill: '#14b8a6', r: 4 }}
-                name="Visits"
+                name="Confirmed Visits"
               />
             </LineChart>
           </ResponsiveContainer>
@@ -309,8 +389,38 @@ export default function AnalyticsPage() {
           {/* Views by Category - Pie Chart */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="mb-6">
-              <h3 className="text-lg font-bold text-gray-800">Views by Category</h3>
-              <p className="text-sm text-gray-500">Distribution of views</p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">Views by Category</h3>
+                  <p className="text-sm text-gray-500">
+                    Distribution of views for {monthLabels[selectedMonth]} {selectedYear}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="h-9 rounded-md border border-gray-200 bg-white px-2 text-xs sm:text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    {monthLabels.map((label, index) => (
+                      <option key={label} value={index}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="h-9 rounded-md border border-gray-200 bg-white px-2 text-xs sm:text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    {yearOptions.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
             {categoryViews.length === 0 ? (
               <div className="flex items-center justify-center h-[300px]">
@@ -361,8 +471,14 @@ export default function AnalyticsPage() {
           {/* Category Performance - Bar Chart */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="mb-6">
-              <h3 className="text-lg font-bold text-gray-800">Category Performance</h3>
-              <p className="text-sm text-gray-500">Views vs Visits comparison</p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">Category Performance</h3>
+                  <p className="text-sm text-gray-500">
+                    Views vs intents (attempts) vs confirmed visits for {monthLabels[selectedMonth]} {selectedYear}
+                  </p>
+                </div>
+              </div>
             </div>
             {categoryPerformance.length === 0 ? (
               <div className="flex items-center justify-center h-[300px]">
@@ -375,6 +491,14 @@ export default function AnalyticsPage() {
                 <XAxis dataKey="category" stroke="#6b7280" angle={-45} textAnchor="end" height={80} />
                 <YAxis stroke="#6b7280" />
                 <Tooltip
+                  formatter={(value: any, name: any) => {
+                    const map: Record<string, string> = {
+                      views: 'Views',
+                      intents: 'Visit Intents (Attempts)',
+                      confirmed: 'Confirmed Visits',
+                    }
+                    return [Number(value || 0).toLocaleString(), map[String(name)] || String(name)]
+                  }}
                   contentStyle={{
                     backgroundColor: '#fff',
                     border: '1px solid #e5e7eb',
@@ -383,7 +507,8 @@ export default function AnalyticsPage() {
                 />
                 <Legend />
                 <Bar dataKey="views" fill="#8b5cf6" name="Views" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="visits" fill="#14b8a6" name="Visits" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="intents" fill="#f97316" name="Visit Intents (Attempts)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="confirmed" fill="#14b8a6" name="Confirmed Visits" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             )}

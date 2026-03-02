@@ -74,12 +74,12 @@ export default function CategoriesPage() {
             {categories.map((category, index) => (
             <div
               key={index}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition"
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition flex flex-col"
             >
-              <div className={`${category.color} p-6 flex items-center justify-center`}>
+              <div className={`${category.color} px-6 py-5 flex items-center justify-center`}>
                 <Folder className="text-white" size={48} />
               </div>
-              <div className="p-6">
+              <div className="px-6 py-5 flex-1 flex flex-col justify-between">
                 <h3 className="text-xl font-bold text-gray-800 mb-4">{category.name}</h3>
                 <div className="space-y-3">
                   <div>

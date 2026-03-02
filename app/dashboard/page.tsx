@@ -2,6 +2,25 @@
 
 import React, { useEffect, useState } from 'react'
 import { MapPin, Eye, Users, Folder } from 'lucide-react'
+
+// Category icon and color mapping (matching mobile app)
+const getCategoryIcon = (categoryName: string): string => {
+  const cat = categoryName.toLowerCase();
+  if (cat.includes('nature')) return '🏞️';
+  if (cat.includes('food')) return '🍽️';
+  if (cat.includes('heritage')) return '🏛️';
+  if (cat.includes('resort')) return '🏖️';
+  return '📁';
+};
+
+const getCategoryGradient = (categoryName: string): string => {
+  const cat = categoryName.toLowerCase();
+  if (cat.includes('nature')) return 'from-[#2F6F4E] via-[#6BCB77] to-[#A3E635]';
+  if (cat.includes('food')) return 'from-[#C44536] via-[#FF8C42] to-[#FFD166]';
+  if (cat.includes('heritage')) return 'from-[#7A5C3E] via-[#C6A969] to-[#E6C78B]';
+  if (cat.includes('resort')) return 'from-[#1A759F] via-[#34A0A4] to-[#76C893]';
+  return 'from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]';
+};
 import {
   getTotalDestinations,
   getTotalViews,
@@ -14,7 +33,7 @@ import {
   getCategoryCount,
   getMostViewedDestinations,
   getMostConfirmedVisits,
-  getViewsByCategory,
+  getCategoryStatistics,
 } from '@/lib/analytics'
 
 export default function DashboardPage() {
@@ -27,8 +46,8 @@ export default function DashboardPage() {
   const [confirmedVisits, setConfirmedVisits] = useState(0)
   const [visitIntents, setVisitIntents] = useState(0)
   const [categoryCount, setCategoryCount] = useState(0)
-  const [topDestinations, setTopDestinations] = useState<Array<{ name: string; category: string; municipality: string; views: number }>>([])
-  const [topConfirmedVisits, setTopConfirmedVisits] = useState<Array<{ name: string; category: string; municipality: string; visits: number }>>([])
+  const [topDestinations, setTopDestinations] = useState<Array<{ name: string; category: string; municipality: string; views: number; image_url: string | null }>>([])
+  const [topConfirmedVisits, setTopConfirmedVisits] = useState<Array<{ name: string; category: string; municipality: string; visits: number; image_url: string | null }>>([])
   const [categories, setCategories] = useState<Array<{ name: string; views: number; count: number; color: string }>>([])
   const [loading, setLoading] = useState(true)
 
@@ -47,7 +66,7 @@ export default function DashboardPage() {
           categories,
           topDests,
           topConfirmed,
-          categoryViews,
+          categoryStats,
         ] = await Promise.all([
           getTotalDestinations(),
           getTotalViews(),
@@ -60,7 +79,7 @@ export default function DashboardPage() {
           getCategoryCount(),
           getMostViewedDestinations(5),
           getMostConfirmedVisits(5),
-          getViewsByCategory(),
+          getCategoryStatistics(),
         ])
 
         setTotalDestinations(destinations)
@@ -75,23 +94,12 @@ export default function DashboardPage() {
         setTopDestinations(topDests)
         setTopConfirmedVisits(topConfirmed)
 
-        // Map category views to display format
-        const categoryColors: Record<string, string> = {
-          'Nature & Adventure': 'bg-blue-500',
-          'Food & Dining': 'bg-pink-500',
-          'Heritage & Culture': 'bg-orange-500',
-          'Resort & Recreation': 'bg-teal-500',
-          'resorts': 'bg-teal-500',
-          'nature': 'bg-blue-500',
-          'food': 'bg-pink-500',
-          'heritage': 'bg-orange-500',
-        }
-
-        const categoryData = categoryViews.map((cat) => ({
+        // Map category statistics to display format
+        const categoryData = categoryStats.map((cat) => ({
           name: cat.name,
-          views: cat.views,
-          count: 0, // We'd need to query destinations to get actual count
-          color: categoryColors[cat.name] || 'bg-gray-500',
+          views: cat.totalViews,
+          count: cat.destinations, // Actual destination count from database
+          color: 'bg-gray-500', // Not used anymore since we use gradients
         }))
 
         setCategories(categoryData)
@@ -106,91 +114,116 @@ export default function DashboardPage() {
   }, [])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                <MapPin className="text-primary-600" size={24} />
+          <div className="bg-gradient-to-br from-white to-[#F8FAFC] rounded-2xl shadow-lg p-7 border-2 border-[#2EC4B6]/20 hover:shadow-xl transition-all duration-300 hover:border-[#2EC4B6]/40 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
+            <div className="flex items-center justify-between mb-5">
+              <div className="w-14 h-14 bg-gradient-to-br from-[#DC2626] to-[#EF4444] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <MapPin className="text-white" size={26} />
               </div>
-              <span className="text-sm font-semibold text-green-600 bg-green-50 px-2 py-1 rounded">+12%</span>
+              <span className="text-xs font-bold text-[#10B981] bg-[#D1FAE5] px-3 py-1.5 rounded-full">+12%</span>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mb-1">{loading ? '...' : totalDestinations.toLocaleString()}</p>
-            <p className="text-sm text-gray-500">Total Destinations</p>
+            <p className="text-4xl font-black text-[#0F172A] mb-2 font-poppins">{loading ? '...' : totalDestinations.toLocaleString()}</p>
+            <p className="text-sm font-semibold text-[#64748B] uppercase tracking-wide">Total Destinations</p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Eye className="text-blue-600" size={24} />
+          <div className="bg-gradient-to-br from-white to-[#F8FAFC] rounded-2xl shadow-lg p-7 border-2 border-[#2EC4B6]/20 hover:shadow-xl transition-all duration-300 hover:border-[#2EC4B6]/40 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
+            <div className="flex items-center justify-between mb-5">
+              <div className="w-14 h-14 bg-gradient-to-br from-[#F59E0B] to-[#EF4444] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Eye className="text-white" size={26} />
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mb-1">{loading ? '...' : totalViews.toLocaleString()}</p>
-            <p className="text-sm text-gray-500">Total Views</p>
+            <p className="text-4xl font-black text-[#0F172A] mb-2 font-poppins">{loading ? '...' : totalViews.toLocaleString()}</p>
+            <p className="text-sm font-semibold text-[#64748B] uppercase tracking-wide mb-3">Total Views</p>
             {!loading && (
-              <div className="mt-2 text-xs text-gray-600 space-y-1">
+              <div className="mt-3 text-xs text-[#475569] space-y-1.5 font-medium">
                 <p>
-                  <span className="font-semibold text-blue-600">{viewsToday.toLocaleString()}</span> today
+                  <span className="font-bold text-[#0F4C5C]">{viewsToday.toLocaleString()}</span> today
                 </p>
                 <p>
-                  <span className="font-semibold text-blue-600">{viewsThisWeek.toLocaleString()}</span> this week
+                  <span className="font-bold text-[#2EC4B6]">{viewsThisWeek.toLocaleString()}</span> this week
                 </p>
                 <p>
-                  <span className="font-semibold text-blue-600">{viewsThisMonth.toLocaleString()}</span> this month
+                  <span className="font-bold text-[#06B6D4]">{viewsThisMonth.toLocaleString()}</span> this month
                 </p>
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-                <Users className="text-teal-600" size={24} />
+          <div className="bg-gradient-to-br from-white to-[#F8FAFC] rounded-2xl shadow-lg p-7 border-2 border-[#2EC4B6]/20 hover:shadow-xl transition-all duration-300 hover:border-[#2EC4B6]/40 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
+            <div className="flex items-center justify-between mb-5">
+              <div className="w-14 h-14 bg-gradient-to-br from-[#10B981] to-[#059669] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Users className="text-white" size={26} />
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mb-1">{loading ? '...' : totalVisits.toLocaleString()}</p>
-            <p className="text-sm text-gray-500">Total Visits</p>
+            <p className="text-4xl font-black text-[#0F172A] mb-2 font-poppins">{loading ? '...' : totalVisits.toLocaleString()}</p>
+            <p className="text-sm font-semibold text-[#64748B] uppercase tracking-wide mb-3">Total Visits</p>
             {!loading && (
-              <div className="mt-2 text-xs text-gray-600">
-                <span className="text-green-600 font-semibold">{confirmedVisits.toLocaleString()}</span> confirmed • <span className="text-blue-600">{visitIntents.toLocaleString()}</span> intents
+              <div className="mt-3 text-xs text-[#475569] font-medium">
+                <span className="text-[#10B981] font-bold">{confirmedVisits.toLocaleString()}</span> confirmed • <span className="text-[#2EC4B6] font-bold">{visitIntents.toLocaleString()}</span> intents
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Folder className="text-orange-600" size={24} />
+          <div className="bg-gradient-to-br from-white to-[#F8FAFC] rounded-2xl shadow-lg p-7 border-2 border-[#2EC4B6]/20 hover:shadow-xl transition-all duration-300 hover:border-[#2EC4B6]/40 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
+            <div className="flex items-center justify-between mb-5">
+              <div className="w-14 h-14 bg-gradient-to-br from-[#EC4899] to-[#A855F7] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Folder className="text-white" size={26} />
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mb-1">{loading ? '...' : categoryCount}</p>
-            <p className="text-sm text-gray-500">Categories</p>
+            <p className="text-4xl font-black text-[#0F172A] mb-2 font-poppins">{loading ? '...' : categoryCount}</p>
+            <p className="text-sm font-semibold text-[#64748B] uppercase tracking-wide">Categories</p>
           </div>
         </div>
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Destinations */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Top Destinations</h2>
-            <div className="space-y-4">
+          <div className="bg-gradient-to-br from-white to-[#F8FAFC] rounded-2xl shadow-lg p-7 border-2 border-[#2EC4B6]/20 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
+            <h2 className="text-2xl font-black text-[#0F172A] mb-6 font-poppins">Top Destinations</h2>
+            <div className="space-y-3">
               {loading ? (
-                <p className="text-gray-500 text-center py-4">Loading...</p>
+                <p className="text-[#64748B] text-center py-8 font-medium">Loading...</p>
               ) : topDestinations.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No views yet</p>
+                <p className="text-[#64748B] text-center py-8 font-medium">No views yet</p>
               ) : (
                 topDestinations.map((dest, index) => (
-                  <div key={index} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition">
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center">
-                      <MapPin className="text-gray-400" size={24} />
+                  <div key={index} className="flex items-center gap-4 p-4 hover:bg-gradient-to-r hover:from-[#0F4C5C]/5 hover:to-[#2EC4B6]/5 rounded-xl transition-all duration-200 border border-transparent hover:border-[#2EC4B6]/20">
+                    <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-md bg-gradient-to-br from-[#0F4C5C] to-[#2EC4B6] relative">
+                      {dest.image_url ? (
+                        <>
+                          <img
+                            src={dest.image_url}
+                            alt={dest.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="w-full h-full hidden items-center justify-center absolute inset-0">
+                            <MapPin className="text-white" size={24} />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <MapPin className="text-white" size={24} />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{dest.name}</p>
-                      <p className="text-sm text-gray-500">{dest.category || 'Unknown'}</p>
+                      <p className="font-bold text-[#0F172A] text-base">{dest.name}</p>
+                      <p className="text-sm text-[#64748B] font-medium">{dest.category || 'Unknown'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-primary-600">{dest.views.toLocaleString()} views</p>
+                      <p className="text-sm font-black text-[#0F4C5C]">{dest.views.toLocaleString()} views</p>
                     </div>
                   </div>
                 ))
@@ -199,25 +232,46 @@ export default function DashboardPage() {
           </div>
 
           {/* Top Confirmed Visits */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Most Visited (Confirmed)</h2>
-            <div className="space-y-4">
+          <div className="bg-gradient-to-br from-white to-[#F8FAFC] rounded-2xl shadow-lg p-7 border-2 border-[#2EC4B6]/20 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
+            <h2 className="text-2xl font-black text-[#0F172A] mb-6 font-poppins">Most Visited (Confirmed)</h2>
+            <div className="space-y-3">
               {loading ? (
-                <p className="text-gray-500 text-center py-4">Loading...</p>
+                <p className="text-[#64748B] text-center py-8 font-medium">Loading...</p>
               ) : topConfirmedVisits.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No confirmed visits yet</p>
+                <p className="text-[#64748B] text-center py-8 font-medium">No confirmed visits yet</p>
               ) : (
                 topConfirmedVisits.map((dest, index) => (
-                  <div key={index} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition">
-                    <div className="w-16 h-16 bg-teal-100 rounded-lg flex-shrink-0 flex items-center justify-center">
-                      <Users className="text-teal-600" size={24} />
+                  <div key={index} className="flex items-center gap-4 p-4 hover:bg-gradient-to-r hover:from-[#2EC4B6]/5 hover:to-[#06B6D4]/5 rounded-xl transition-all duration-200 border border-transparent hover:border-[#2EC4B6]/20">
+                    <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-md bg-gradient-to-br from-[#2EC4B6] to-[#06B6D4] relative">
+                      {dest.image_url ? (
+                        <>
+                          <img
+                            src={dest.image_url}
+                            alt={dest.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="w-full h-full hidden items-center justify-center absolute inset-0">
+                            <Users className="text-white" size={24} />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Users className="text-white" size={24} />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{dest.name}</p>
-                      <p className="text-sm text-gray-500">{dest.category || 'Unknown'}</p>
+                      <p className="font-bold text-[#0F172A] text-base">{dest.name}</p>
+                      <p className="text-sm text-[#64748B] font-medium">{dest.category || 'Unknown'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-teal-600">{dest.visits.toLocaleString()} visits</p>
+                      <p className="text-sm font-black text-[#2EC4B6]">{dest.visits.toLocaleString()} visits</p>
                     </div>
                   </div>
                 ))
@@ -227,25 +281,26 @@ export default function DashboardPage() {
         </div>
 
         {/* Categories Overview */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Categories Overview</h2>
-            <div className="space-y-4">
+        <div className="bg-gradient-to-br from-white to-[#F8FAFC] rounded-2xl shadow-lg p-7 border-2 border-[#2EC4B6]/20 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
+          <h2 className="text-2xl font-black text-[#0F172A] mb-6 font-poppins">Categories Overview</h2>
+            <div className="space-y-3">
               {loading ? (
-                <p className="text-gray-500 text-center py-4">Loading...</p>
+                <p className="text-[#64748B] text-center py-8 font-medium">Loading...</p>
               ) : categories.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No category data yet</p>
+                <p className="text-[#64748B] text-center py-8 font-medium">No category data yet</p>
               ) : (
                 categories.map((cat, index) => (
-                  <div key={index} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition">
-                    <div className={`w-12 h-12 ${cat.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                      <Folder className="text-white" size={20} />
+                  <div key={index} className="flex items-center gap-4 p-4 hover:bg-gradient-to-r hover:from-[#0F4C5C]/5 hover:to-[#2EC4B6]/5 rounded-xl transition-all duration-200 border border-transparent hover:border-[#2EC4B6]/20">
+                    <div className={`w-14 h-14 bg-gradient-to-br ${getCategoryGradient(cat.name)} rounded-xl flex items-center justify-center flex-shrink-0 shadow-md`}>
+                      <span className="text-2xl">{getCategoryIcon(cat.name)}</span>
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{cat.name}</p>
-                      <p className="text-sm text-gray-500">{cat.count} destinations</p>
+                      <p className="font-bold text-[#0F172A] text-base capitalize">{cat.name}</p>
+                      <p className="text-sm text-[#64748B] font-medium">{cat.count} destinations</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-primary-600">{cat.views.toLocaleString()} views</p>
+                      <p className="text-sm font-black text-[#0F4C5C]">{cat.views.toLocaleString()} views</p>
                     </div>
                   </div>
                 ))

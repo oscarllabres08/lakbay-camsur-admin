@@ -568,7 +568,10 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
               : '')
           : formData.estimatedCost,
         image_url: imageUrl || null,
-        accommodations: categoryValue === 'resorts' && accommodations.length > 0 ? JSON.stringify(accommodations) : null,
+        accommodations:
+          (categoryValue === 'resorts' || categoryValue === 'nature') && accommodations.length > 0
+            ? JSON.stringify(accommodations)
+            : null,
         // Convert rating (1-5) to popularity (0-1) for database
         popularity: formData.rating ? formData.rating / 5 : null,
       }
@@ -1059,12 +1062,14 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
           </div>
 
 
-          {/* Accommodations & Cottages - Only for Resorts */}
-          {formData.category === 'resorts' && (
+          {/* Accommodations & Cottages - For Resorts and Nature */}
+          {(formData.category === 'resorts' || formData.category === 'nature') && (
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-medium text-gray-700">
-                  Accommodations & Cottages
+                  {formData.category === 'resorts'
+                    ? 'Accommodations & Cottages'
+                    : 'Accommodations / Cottages (Optional)'}
                 </label>
                 <button
                   type="button"

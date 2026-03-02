@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Brand typography – Poppins for headings, Open Sans for body */
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
+/* Brand typography – Poppins for headings, Inter for body */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
 
 * {
   margin: 0;
@@ -12,12 +12,13 @@
 }
 
 body {
-  font-family: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont,
+  font-family: 'Inter', 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #F4F1FF 0%, #FFFFFF 60%);
-  color: #1B1B1B;
+  background: linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 25%, #FFFFFF 50%, #F0FDF4 75%, #ECFDF5 100%);
+  background-attachment: fixed;
+  color: #0F172A;
 }
 
 h1,
@@ -26,9 +27,9 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Poppins', 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont,
+  font-family: 'Poppins', 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Smooth animations */
@@ -84,10 +85,10 @@ button:focus {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #0F4C5C;
+  background: linear-gradient(135deg, #0F4C5C, #2EC4B6);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #0D3F4D;
+  background: linear-gradient(135deg, #0D3F4D, #25A396);
 }

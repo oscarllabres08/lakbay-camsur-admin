@@ -219,10 +219,29 @@ export async function getMostViewedDestinations(limit: number = 10) {
     aggregated[key].views += 1;
   });
   
-  // Sort by views and return top N
-  return Object.values(aggregated)
+  // Get top destinations
+  const topDestinations = Object.values(aggregated)
     .sort((a, b) => b.views - a.views)
     .slice(0, limit);
+  
+  // Fetch image URLs from destinations table
+  const destinationNames = topDestinations.map(d => d.name);
+  const { data: destinationsData } = await supabase
+    .from('destinations')
+    .select('name, image_url')
+    .in('name', destinationNames);
+  
+  // Create a map of name to image_url
+  const imageMap: Record<string, string | null> = {};
+  destinationsData?.forEach((dest) => {
+    imageMap[dest.name] = dest.image_url;
+  });
+  
+  // Add image_url to each destination
+  return topDestinations.map(dest => ({
+    ...dest,
+    image_url: imageMap[dest.name] || null,
+  }));
 }
 
 // Get most visited destinations (all visit types)
@@ -294,17 +313,53 @@ export async function getMostConfirmedVisits(limit: number = 10) {
     aggregated[key].visits += 1;
   });
   
-  // Sort by visits and return top N
-  return Object.values(aggregated)
+  // Get top destinations
+  const topDestinations = Object.values(aggregated)
     .sort((a, b) => b.visits - a.visits)
     .slice(0, limit);
+  
+  // Fetch image URLs from destinations table
+  const destinationNames = topDestinations.map(d => d.name);
+  const { data: destinationsData } = await supabase
+    .from('destinations')
+    .select('name, image_url')
+    .in('name', destinationNames);
+  
+  // Create a map of name to image_url
+  const imageMap: Record<string, string | null> = {};
+  destinationsData?.forEach((dest) => {
+    imageMap[dest.name] = dest.image_url;
+  });
+  
+  // Add image_url to each destination
+  return topDestinations.map(dest => ({
+    ...dest,
+    image_url: imageMap[dest.name] || null,
+  }));
 }
 
-// Get views by category
-export async function getViewsByCategory() {
-  const { data, error } = await supabase
+// Helper to build month range
+function getMonthRange(year: number, monthIndex: number) {
+  // monthIndex: 0 = Jan
+  const start = new Date(year, monthIndex, 1);
+  const end = new Date(year, monthIndex + 1, 1);
+  return { start, end };
+}
+
+// Get views by category (optionally for a specific month)
+export async function getViewsByCategory(year?: number, monthIndex?: number) {
+  let query = supabase
     .from('destination_views')
-    .select('category');
+    .select('category, viewed_at');
+
+  if (typeof year === 'number' && typeof monthIndex === 'number') {
+    const { start, end } = getMonthRange(year, monthIndex);
+    query = query
+      .gte('viewed_at', start.toISOString())
+      .lt('viewed_at', end.toISOString());
+  }
+  
+  const { data, error } = await query;
   
   if (error) {
     console.error('Error fetching views by category:', error);
@@ -315,7 +370,7 @@ export async function getViewsByCategory() {
   const aggregated: Record<string, number> = {};
   
   data?.forEach((view) => {
-    const category = view.category || 'Unknown';
+    const category = (view as any).category || 'Unknown';
     aggregated[category] = (aggregated[category] || 0) + 1;
   });
   
@@ -325,11 +380,20 @@ export async function getViewsByCategory() {
   }));
 }
 
-// Get visits by category
-export async function getVisitsByCategory() {
-  const { data, error } = await supabase
+// Get visits by category (optionally for a specific month)
+export async function getVisitsByCategory(year?: number, monthIndex?: number) {
+  let query = supabase
     .from('destination_visits')
-    .select('category');
+    .select('category, visited_at');
+  
+  if (typeof year === 'number' && typeof monthIndex === 'number') {
+    const { start, end } = getMonthRange(year, monthIndex);
+    query = query
+      .gte('visited_at', start.toISOString())
+      .lt('visited_at', end.toISOString());
+  }
+
+  const { data, error } = await query;
   
   if (error) {
     console.error('Error fetching visits by category:', error);
@@ -340,7 +404,7 @@ export async function getVisitsByCategory() {
   const aggregated: Record<string, number> = {};
   
   data?.forEach((visit) => {
-    const category = visit.category || 'Unknown';
+    const category = (visit as any).category || 'Unknown';
     aggregated[category] = (aggregated[category] || 0) + 1;
   });
   
@@ -350,7 +414,53 @@ export async function getVisitsByCategory() {
   }));
 }
 
-// Get monthly trends (views and visits)
+export type VisitTypeBucket = 'intent' | 'confirmed' | 'other'
+
+function bucketVisitType(visitType: any): VisitTypeBucket {
+  if (visitType === 'confirmed') return 'confirmed'
+  if (visitType === 'navigation' || visitType === 'maps_view') return 'intent'
+  return 'other'
+}
+
+// Get visits breakdown by category (intent vs confirmed)
+export async function getVisitBreakdownByCategory(year?: number, monthIndex?: number) {
+  let query = supabase
+    .from('destination_visits')
+    .select('category, visit_type, visited_at')
+
+  if (typeof year === 'number' && typeof monthIndex === 'number') {
+    const { start, end } = getMonthRange(year, monthIndex)
+    query = query
+      .gte('visited_at', start.toISOString())
+      .lt('visited_at', end.toISOString())
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching visit breakdown by category:', error)
+    return []
+  }
+
+  const aggregated: Record<string, { name: string; intents: number; confirmed: number; total: number; other: number }> = {}
+
+  data?.forEach((row: any) => {
+    const category = row.category || 'Unknown'
+    if (!aggregated[category]) {
+      aggregated[category] = { name: category, intents: 0, confirmed: 0, total: 0, other: 0 }
+    }
+
+    const bucket = bucketVisitType(row.visit_type)
+    aggregated[category].total += 1
+    if (bucket === 'intent') aggregated[category].intents += 1
+    else if (bucket === 'confirmed') aggregated[category].confirmed += 1
+    else aggregated[category].other += 1
+  })
+
+  return Object.values(aggregated)
+}
+
+// Get monthly trends (views + visit intents + confirmed visits)
 export async function getMonthlyTrends(months: number = 6) {
   const now = new Date();
   const startDate = new Date();
@@ -363,7 +473,7 @@ export async function getMonthlyTrends(months: number = 6) {
   
   const { data: visitsData, error: visitsError } = await supabase
     .from('destination_visits')
-    .select('visited_at')
+    .select('visited_at, visit_type')
     .gte('visited_at', startDate.toISOString());
   
   if (viewsError || visitsError) {
@@ -372,7 +482,10 @@ export async function getMonthlyTrends(months: number = 6) {
   }
   
   // Group by month
-  const monthly: Record<string, { month: string; views: number; visits: number }> = {};
+  const monthly: Record<
+    string,
+    { month: string; views: number; visits: number; intents: number; confirmed: number; other: number }
+  > = {};
   
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   
@@ -380,18 +493,23 @@ export async function getMonthlyTrends(months: number = 6) {
     const date = new Date(view.viewed_at);
     const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
     if (!monthly[monthKey]) {
-      monthly[monthKey] = { month: monthKey, views: 0, visits: 0 };
+      monthly[monthKey] = { month: monthKey, views: 0, visits: 0, intents: 0, confirmed: 0, other: 0 };
     }
     monthly[monthKey].views += 1;
   });
   
-  visitsData?.forEach((visit) => {
+  visitsData?.forEach((visit: any) => {
     const date = new Date(visit.visited_at);
     const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
     if (!monthly[monthKey]) {
-      monthly[monthKey] = { month: monthKey, views: 0, visits: 0 };
+      monthly[monthKey] = { month: monthKey, views: 0, visits: 0, intents: 0, confirmed: 0, other: 0 };
     }
     monthly[monthKey].visits += 1;
+
+    const bucket = bucketVisitType(visit.visit_type)
+    if (bucket === 'intent') monthly[monthKey].intents += 1
+    else if (bucket === 'confirmed') monthly[monthKey].confirmed += 1
+    else monthly[monthKey].other += 1
   });
   
   // Sort by date and return

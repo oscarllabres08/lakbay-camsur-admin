@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Lakbay CamSur Icon</title>
+  <desc id="desc">Rounded square icon with a map pin using Lakbay CamSur brand colors.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F4C5C" />
+      <stop offset="1" stop-color="#2EC4B6" />
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95" />
+      <stop offset="1" stop-color="#E0F2F1" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#bg)" />
+  <g transform="translate(0,2)">
+    <path
+      d="M32 14c-6.075 0-11 4.925-11 11 0 7.5 7.7 14.8 10.1 16.9.53.47 1.27.47 1.8 0C35.3 39.8 43 32.5 43 25c0-6.075-4.925-11-11-11z"
+      fill="url(#pin)"
+    />
+    <circle cx="32" cy="25" r="4.5" fill="#0F4C5C" />
+  </g>
+</svg>
+
