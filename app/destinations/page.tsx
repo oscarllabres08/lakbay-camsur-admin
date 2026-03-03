@@ -27,6 +27,7 @@ interface Destination {
   visits: number
   popularity: number
   accommodations?: Accommodation[]
+  tags?: string[]
 }
 
 const categoryLabels: Record<string, string> = {
@@ -199,6 +200,7 @@ export default function DestinationsPage() {
       image_url: dest.image_url || '',
       accommodations: accommodations,
       rating: rating,
+      tags: dest.tags || [],
     }
     setEditingDestination(formData)
     setIsModalOpen(true)

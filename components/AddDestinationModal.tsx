@@ -24,6 +24,7 @@ interface Destination {
   location: string
   accommodations?: Accommodation[]
   rating?: number
+  tags?: string[]
 }
 
 interface Props {
@@ -78,6 +79,15 @@ const accommodationTypes = [
   'Other',
 ]
 
+const natureTypeOptions = [
+  { label: 'Any nature site', value: 'any', tag: null },
+  { label: 'Waterfalls', value: 'waterfalls', tag: 'Waterfalls' },
+  { label: 'Camping site', value: 'camping', tag: 'Camping' },
+  { label: 'Spring', value: 'spring', tag: 'Spring' },
+  { label: 'River / Swimming', value: 'river_swimming', tag: 'River' },
+  { label: 'Activity / Adventure', value: 'activity', tag: 'Adventure' },
+];
+
 export default function AddDestinationModal({ isOpen, onClose, onSave, destination, municipalities: municipalitiesProp }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -129,7 +139,27 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
     image_url: destination?.image_url || '',
     accommodations: initialAccommodations,
     rating: destination?.rating || undefined,
+    tags: (destination as any)?.tags || [],
   })
+
+  const getInitialNatureType = (): string => {
+    const rawTags: any = (destination as any)?.tags;
+    const tags: string[] = Array.isArray(rawTags)
+      ? rawTags
+      : typeof rawTags === 'string'
+      ? rawTags.split(',').map((t) => t.trim())
+      : [];
+
+    const lower = tags.map((t) => t.toLowerCase());
+    if (lower.some((t) => t.includes('falls') || t.includes('waterfall'))) return 'waterfalls';
+    if (lower.some((t) => t.includes('camp'))) return 'camping';
+    if (lower.some((t) => t.includes('spring'))) return 'spring';
+    if (lower.some((t) => t.includes('river') || t.includes('swim'))) return 'river_swimming';
+    if (lower.some((t) => t.includes('adventure') || t.includes('hiking') || t.includes('trail'))) return 'activity';
+    return 'any';
+  };
+
+  const [natureType, setNatureType] = useState<string>(getInitialNatureType());
 
   // "Always open" toggle for non-resort categories.
   // If existing data contains 24/7-style text, default this to true.
@@ -560,6 +590,28 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
         }
       }
 
+      // Compute tags (especially for Nature type)
+      const existingTagsRaw: any = (destination as any)?.tags || formData.tags || [];
+      const existingTags: string[] = Array.isArray(existingTagsRaw)
+        ? existingTagsRaw
+        : typeof existingTagsRaw === 'string'
+        ? existingTagsRaw.split(',').map((t) => t.trim())
+        : [];
+
+      const natureTagsToStrip = natureTypeOptions
+        .map((o) => o.tag)
+        .filter((t): t is string => !!t)
+        .map((t) => t.toLowerCase());
+
+      let updatedTags = existingTags.filter(
+        (tag) => !natureTagsToStrip.some((nt) => tag.toLowerCase().includes(nt))
+      );
+
+      const selectedNature = natureTypeOptions.find((o) => o.value === natureType);
+      if (formData.category === 'nature' && selectedNature?.tag) {
+        updatedTags = [...updatedTags, selectedNature.tag];
+      }
+
       // Prepare data for Supabase
       const destinationData: any = {
         name: formData.name,
@@ -586,6 +638,7 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
             : null,
         // Convert rating (1-5) to popularity (0-1) for database
         popularity: formData.rating ? formData.rating / 5 : null,
+        tags: updatedTags.length > 0 ? updatedTags : null,
       }
 
       if (destination?.id) {
@@ -957,6 +1010,34 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
               </div>
             )}
           </div>
+
+          {/* Nature Type (for itinerary filtering) */}
+          {formData.category === 'nature' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nature Type (for itinerary)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {natureTypeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setNatureType(option.value)}
+                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition ${
+                      natureType === option.value
+                        ? 'bg-primary-50 border-primary-500 text-primary-700'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                This helps the mobile app filter Nature itineraries (e.g., show only waterfalls or camping sites).
+              </p>
+            </div>
+          )}
 
           {/* Entrance / Estimated Cost */}
           <div>
