@@ -261,6 +261,68 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
   const initialAvailability = parseAvailability(destination?.operatingHours);
   const [resortAvailabilityDay, setResortAvailabilityDay] = useState<boolean>(initialAvailability.day);
   const [resortAvailabilityNight, setResortAvailabilityNight] = useState<boolean>(initialAvailability.night);
+
+  // Format validation states
+  const [formatErrors, setFormatErrors] = useState<{
+    operatingHours?: string;
+    bestTimeToVisit?: string;
+    estimatedCost?: string;
+  }>({});
+
+  // Validation functions
+  const validateOperatingHours = (value: string): string | null => {
+    if (!value.trim()) return null;
+    // Valid formats: "7:00 AM - 10:00 PM", "Day Only", "Night Only", "24/7", "24-7", "24 hours"
+    const validPatterns = [
+      /^\d{1,2}:\d{2}\s*(AM|PM|am|pm)\s*-\s*\d{1,2}:\d{2}\s*(AM|PM|am|pm)/i, // Time range
+      /^(day|night)\s*only$/i, // Day/Night only
+      /^24[\/\-]?7$/i, // 24/7 variants
+      /^24\s*hours?$/i, // 24 hours
+      /^always\s*open$/i, // Always open
+    ];
+    const isValid = validPatterns.some(pattern => pattern.test(value.trim()));
+    return isValid ? null : 'Invalid format. Use: "7:00 AM - 10:00 PM", "Day Only", "Night Only", or "24/7"';
+  };
+
+  const validateBestTimeResort = (value: string): string | null => {
+    if (!value.trim()) return null;
+    // Should be comma-separated values like "Weekdays, Summer" or single value
+    // Allow common separators: comma, semicolon, or "and"
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
+      return 'Please provide at least 2 characters (e.g., "Summer" or "Weekdays, Summer")';
+    }
+    return null;
+  };
+
+  const validateBestTimeHeritage = (value: string): string | null => {
+    if (!value.trim()) return null;
+    // Should be comma-separated or single value like "Anytime", "Morning", "Afternoon"
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
+      return 'Please provide at least 2 characters (e.g., "Anytime" or "Morning, Afternoon")';
+    }
+    return null;
+  };
+
+  const validateEstimatedCost = (value: string, category: string): string | null => {
+    if (!value.trim()) return null;
+    
+    if (category === 'food') {
+      // Food format: "₱100-200 per person", "100-200", "100 to 200", or "100"
+      const hasValidPrice = /₱?\s*\d+/.test(value);
+      if (!hasValidPrice) {
+        return 'Invalid format. Use: "₱100-200 per person", "100-200", "100 to 200", or "100"';
+      }
+    } else {
+      // Other categories: "₱50 entrance per person", "₱50-100 per person", or "₱50"
+      const hasValidPrice = /₱?\s*\d+/.test(value);
+      if (!hasValidPrice) {
+        return 'Invalid format. Use: "₱50 entrance per person", "₱50-100 per person", or "₱50"';
+      }
+    }
+    return null;
+  };
   
   const [accommodations, setAccommodations] = useState<Accommodation[]>(
     initialAccommodations
@@ -776,7 +838,11 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
             </label>
             <select
               value={formData.category}
-              onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, category: e.target.value }));
+                // Clear format errors when category changes
+                setFormatErrors({});
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
               required
             >
@@ -943,12 +1009,30 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                 <input
                   type="text"
                   value={formData.operatingHours}
-                  onChange={(e) => setFormData(prev => ({ ...prev, operatingHours: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
-                  placeholder="e.g., 7:00 AM - 10:00 PM (Daily)"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, operatingHours: value }));
+                    const error = validateOperatingHours(value);
+                    setFormatErrors(prev => ({ ...prev, operatingHours: error || undefined }));
+                  }}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base ${
+                    formatErrors.operatingHours ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="7:00 AM - 10:00 PM (Daily) or Day Only or Night Only or 24/7"
                   disabled={alwaysOpen}
                   required={!alwaysOpen}
                 />
+                {formatErrors.operatingHours && (
+                  <p className="mt-1 text-xs text-red-600 flex items-start gap-1">
+                    <span>⚠️</span>
+                    <span>{formatErrors.operatingHours}</span>
+                  </p>
+                )}
+                {!formatErrors.operatingHours && !alwaysOpen && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    <strong>Format:</strong> Use <span className="font-mono">"7:00 AM - 10:00 PM"</span>, <span className="font-mono">"Day Only"</span>, <span className="font-mono">"Night Only"</span>, or <span className="font-mono">"24/7"</span>
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -960,24 +1044,64 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
             </label>
             {formData.category === 'resorts' ? (
               // For resort category: text input
-              <input
-                type="text"
-                value={resortBestTimeText}
-                onChange={(e) => setResortBestTimeText(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
-                placeholder="e.g., Summer, Dry Season, All Year Round"
-                required
-              />
+              <div>
+                <input
+                  type="text"
+                  value={resortBestTimeText}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setResortBestTimeText(value);
+                    const error = validateBestTimeResort(value);
+                    setFormatErrors(prev => ({ ...prev, bestTimeToVisit: error || undefined }));
+                  }}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base ${
+                    formatErrors.bestTimeToVisit ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Weekdays, Summer or Dry Season, All Year Round"
+                  required
+                />
+                {formatErrors.bestTimeToVisit && (
+                  <p className="mt-1 text-xs text-red-600 flex items-start gap-1">
+                    <span>⚠️</span>
+                    <span>{formatErrors.bestTimeToVisit}</span>
+                  </p>
+                )}
+                {!formatErrors.bestTimeToVisit && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    <strong>Format:</strong> Comma-separated values (e.g., <span className="font-mono">"Weekdays, Summer"</span> or <span className="font-mono">"Dry Season"</span>)
+                  </p>
+                )}
+              </div>
             ) : formData.category === 'heritage' ? (
               // For heritage category: text input
-              <input
-                type="text"
-                value={heritageBestTimeText}
-                onChange={(e) => setHeritageBestTimeText(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
-                placeholder="e.g., Anytime, Morning, Afternoon"
-                required
-              />
+              <div>
+                <input
+                  type="text"
+                  value={heritageBestTimeText}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setHeritageBestTimeText(value);
+                    const error = validateBestTimeHeritage(value);
+                    setFormatErrors(prev => ({ ...prev, bestTimeToVisit: error || undefined }));
+                  }}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base ${
+                    formatErrors.bestTimeToVisit ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Anytime or Morning, Afternoon, Evening"
+                  required
+                />
+                {formatErrors.bestTimeToVisit && (
+                  <p className="mt-1 text-xs text-red-600 flex items-start gap-1">
+                    <span>⚠️</span>
+                    <span>{formatErrors.bestTimeToVisit}</span>
+                  </p>
+                )}
+                {!formatErrors.bestTimeToVisit && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    <strong>Format:</strong> Comma-separated values (e.g., <span className="font-mono">"Anytime"</span> or <span className="font-mono">"Morning, Afternoon"</span>)
+                  </p>
+                )}
+              </div>
             ) : formData.category === 'nature' ? (
               // For nature category: checkboxes with time periods
               <div className="space-y-2">
@@ -1065,10 +1189,13 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                           setResortEntranceFeeDay(numericValue);
                         }}
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                        placeholder="e.g., 50"
+                        placeholder="250 (numbers only)"
                         required
                       />
                     </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      <strong>Format:</strong> Enter numbers only (e.g., <span className="font-mono">250</span>). The system will automatically format as <span className="font-mono">"Day: ₱250"</span>
+                    </p>
                   </div>
                 )}
                 {resortAvailabilityNight && (
@@ -1087,10 +1214,13 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                           setResortEntranceFeeNight(numericValue);
                         }}
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                        placeholder="e.g., 50"
+                        placeholder="300 (numbers only)"
                         required
                       />
                     </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      <strong>Format:</strong> Enter numbers only (e.g., <span className="font-mono">300</span>). The system will automatically format as <span className="font-mono">"Night: ₱300"</span>
+                    </p>
                   </div>
                 )}
               </div>
@@ -1100,19 +1230,36 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
                 <input
                   type="text"
                   value={formData.estimatedCost}
-                  onChange={(e) => setFormData(prev => ({ ...prev, estimatedCost: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, estimatedCost: value }));
+                    const error = validateEstimatedCost(value, formData.category);
+                    setFormatErrors(prev => ({ ...prev, estimatedCost: error || undefined }));
+                  }}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-base ${
+                    formatErrors.estimatedCost ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                  }`}
                   placeholder={
                     formData.category === 'food'
-                      ? 'e.g., ₱100-200 per person'
-                      : 'e.g., ₱50 entrance per person or ₱50-100 per person'
+                      ? '₱100-200 per person or 100-200 or 100'
+                      : '₱50 entrance per person or ₱50-100 per person or ₱50'
                   }
                   required
                 />
-                {/* Helper text for Food & Dining with format examples */}
-                {formData.category === 'food' && (
-                  <p className="mt-2 text-xs text-gray-500">
-                    Accepted formats: <span className="font-mono">₱100-200 per person</span>, <span className="font-mono">100-200</span>, <span className="font-mono">100 to 200</span>, or <span className="font-mono">100</span> (single price). "per person" is optional and will be automatically ignored by the parser.
+                {formatErrors.estimatedCost && (
+                  <p className="mt-1 text-xs text-red-600 flex items-start gap-1">
+                    <span>⚠️</span>
+                    <span>{formatErrors.estimatedCost}</span>
+                  </p>
+                )}
+                {!formatErrors.estimatedCost && formData.category === 'food' && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    <strong>Format:</strong> <span className="font-mono">₱100-200 per person</span>, <span className="font-mono">100-200</span>, <span className="font-mono">100 to 200</span>, or <span className="font-mono">100</span> (single price). "per person" is optional.
+                  </p>
+                )}
+                {!formatErrors.estimatedCost && formData.category !== 'food' && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    <strong>Format:</strong> <span className="font-mono">₱50 entrance per person</span>, <span className="font-mono">₱50-100 per person</span>, or <span className="font-mono">₱50</span> (single price)
                   </p>
                 )}
               </div>
