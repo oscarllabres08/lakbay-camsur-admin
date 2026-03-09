@@ -9,5 +9,5 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Storage bucket name
-export const STORAGE_BUCKET = 'destination-images'
+// Storage bucket name (must match root app lib/supabase.ts STORAGE_BUCKET)
+export const STORAGE_BUCKET = 'destinations'

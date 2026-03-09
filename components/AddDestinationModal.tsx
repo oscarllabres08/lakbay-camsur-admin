@@ -80,12 +80,13 @@ const accommodationTypes = [
 ]
 
 const natureTypeOptions = [
-  { label: 'Any nature site', value: 'any', tag: null },
-  { label: 'Waterfalls', value: 'waterfalls', tag: 'Waterfalls' },
-  { label: 'Camping site', value: 'camping', tag: 'Camping' },
-  { label: 'Spring', value: 'spring', tag: 'Spring' },
-  { label: 'River / Swimming', value: 'river_swimming', tag: 'River' },
-  { label: 'Activity / Adventure', value: 'activity', tag: 'Adventure' },
+  { label: 'All Types', value: 'all', tag: null },
+  // Includes waterfalls, springs, rivers, swimming spots, beaches, lakes, etc.
+  { label: 'Waterfalls / Swimming', value: 'water', tag: 'nature_type:water' },
+  // Includes camping spots and nature viewing (scenic hills, parks, viewpoints, etc.)
+  { label: 'Camping / Viewing', value: 'camping_view', tag: 'nature_type:camping_view' },
+  // Includes adventure / activity-based nature destinations
+  { label: 'Activity / Adventure', value: 'adventure', tag: 'nature_type:adventure' },
 ];
 
 export default function AddDestinationModal({ isOpen, onClose, onSave, destination, municipalities: municipalitiesProp }: Props) {
@@ -151,12 +152,23 @@ export default function AddDestinationModal({ isOpen, onClose, onSave, destinati
       : [];
 
     const lower = tags.map((t) => t.toLowerCase());
-    if (lower.some((t) => t.includes('falls') || t.includes('waterfall'))) return 'waterfalls';
-    if (lower.some((t) => t.includes('camp'))) return 'camping';
-    if (lower.some((t) => t.includes('spring'))) return 'spring';
-    if (lower.some((t) => t.includes('river') || t.includes('swim'))) return 'river_swimming';
-    if (lower.some((t) => t.includes('adventure') || t.includes('hiking') || t.includes('trail'))) return 'activity';
-    return 'any';
+
+    // Prefer the standardized tag if present
+    if (lower.some((t) => t.includes('nature_type:water'))) return 'water';
+    if (lower.some((t) => t.includes('nature_type:camping_view'))) return 'camping_view';
+    if (lower.some((t) => t.includes('nature_type:adventure'))) return 'adventure';
+
+    // Backward-compat mapping from older tags
+    if (lower.some((t) => t.includes('falls') || t.includes('waterfall') || t.includes('spring') || t.includes('river') || t.includes('swim') || t.includes('beach') || t.includes('lake'))) {
+      return 'water';
+    }
+    if (lower.some((t) => t.includes('camp') || t.includes('scenic') || t.includes('view') || t.includes('park') || t.includes('hills'))) {
+      return 'camping_view';
+    }
+    if (lower.some((t) => t.includes('adventure') || t.includes('hiking') || t.includes('trail') || t.includes('activity') || t.includes('bike') || t.includes('spelunk') || t.includes('cave'))) {
+      return 'adventure';
+    }
+    return 'all';
   };
 
   const [natureType, setNatureType] = useState<string>(getInitialNatureType());

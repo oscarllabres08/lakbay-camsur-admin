@@ -61,52 +61,98 @@ export default function LoginPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-[#E0F2FE] via-[#F0F9FF] to-[#ECFDF5] relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#2EC4B6]/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#0F4C5C]/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#06B6D4]/15 rounded-full blur-3xl"></div>
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Header Section */}
-        <div className="text-center mb-12">
-          <div className="flex flex-col items-center gap-4 mb-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4] rounded-2xl shadow-xl transform hover:scale-105 transition-transform">
-              <span className="text-white font-bold text-2xl font-poppins">LC</span>
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+          {/* Left: Intro / Project Overview */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#0A313D] via-[#0F4C5C] to-[#2EC4B6] text-white px-8 py-10 sm:px-12 sm:py-14 flex items-center justify-center">
+            <div className="absolute inset-0 pointer-events-none">
+              {/* Soft blobs */}
+              <div className="absolute -top-24 -left-24 w-72 h-72 bg-white/12 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
+              <div className="absolute top-1/3 -right-24 w-80 h-80 bg-[#06B6D4]/20 rounded-full blur-3xl"></div>
+              {/* Decorative streaks */}
+              <div className="absolute bottom-16 left-10 h-24 w-72 rotate-[-18deg] rounded-[32px] bg-gradient-to-r from-[#FF7F50]/55 to-[#06B6D4]/55 blur-[1px] opacity-70"></div>
+              <div className="absolute bottom-28 left-24 h-20 w-44 rotate-[-18deg] rounded-[28px] bg-gradient-to-r from-white/35 to-[#2EC4B6]/35 blur-[1px] opacity-60"></div>
+              <div className="absolute bottom-12 left-44 h-2 w-28 rotate-[-18deg] rounded-full bg-white/45 opacity-50"></div>
             </div>
-            <span className="inline-flex items-center px-5 py-2 rounded-full text-xs font-bold tracking-wider bg-gradient-to-r from-[#0F4C5C]/10 to-[#2EC4B6]/10 text-[#0F4C5C] border-2 border-[#2EC4B6]/30 uppercase shadow-sm">
-              Admin Portal
-            </span>
-          </div>
-          <h1 className="text-5xl font-black tracking-tight mb-3 bg-gradient-to-r from-[#0F172A] via-[#0F4C5C] to-[#2EC4B6] bg-clip-text text-transparent font-poppins">
-            Lakbay CamSur
-          </h1>
-          <p className="text-[#64748B] text-lg font-semibold mb-2">
-            Admin Dashboard
-          </p>
-          <p className="text-[#94A3B8] text-sm max-w-xs mx-auto">
-            Secure access to manage destinations and content
-          </p>
-        </div>
 
-        {/* Login Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_30px_80px_-15px_rgba(15,76,92,0.4)] p-10 border-2 border-[#2EC4B6]/20 relative overflow-hidden">
-          {/* Subtle gradient overlay */}
-          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
-          
-          <div className="mb-8">
-            <h2 className="text-3xl font-black text-[#0F172A] mb-3 flex items-center gap-3 font-poppins">
-              <span>Welcome Back</span>
-              <span className="text-3xl">👋</span>
-            </h2>
-            <p className="text-[#64748B] text-base font-medium">
-              Sign in to continue to the admin dashboard
-            </p>
+            <div className="relative w-full max-w-xl">
+              <div className="flex items-center gap-6 mb-10">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-white/15 rounded-3xl shadow-xl ring-1 ring-white/20 backdrop-blur-md">
+                  <span className="text-white font-extrabold text-2xl font-poppins">LC</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-black tracking-widest uppercase text-white/100">Lakbay CamSur</p>
+                  <p className="text-base font-semibold text-white/80">Admin Portal</p>
+                </div>
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-4 text-white font-poppins">
+                Manage destinations with confidence.
+              </h1>
+              <p className="text-white/85 text-base sm:text-lg font-medium leading-relaxed max-w-xl">
+                This dashboard helps you maintain Lakbay CamSur content in one place—destinations, categories, and basic analytics—so the mobile app stays accurate and up to date.
+              </p>
+
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md">
+                  <p className="text-sm font-black text-white mb-2 font-poppins">Content management</p>
+                  <p className="text-sm text-white/80 font-medium leading-relaxed">
+                    Add, edit, and organize destination details and media for consistent public listings.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md">
+                  <p className="text-sm font-black text-white mb-2 font-poppins">Insights</p>
+                  <p className="text-sm text-white/80 font-medium leading-relaxed">
+                    Track views, visit intents, and confirmed visits to understand what travelers explore most.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold tracking-wider bg-white/15 text-white border border-white/20 uppercase shadow-sm backdrop-blur-md">
+                  Secure access
+                </span>
+                <span className="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold tracking-wider bg-white/10 text-white border border-white/20 uppercase shadow-sm backdrop-blur-md">
+                  Admin only
+                </span>
+              </div>
+            </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          {/* Right: Login Form */}
+          <div className="relative flex items-center justify-center bg-gradient-to-br from-[#E0F2FE] via-[#F0F9FF] to-[#ECFDF5] px-6 py-10 sm:px-10">
+            {/* Subtle background shapes */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#2EC4B6]/18 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#0F4C5C]/16 rounded-full blur-3xl"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#06B6D4]/12 rounded-full blur-3xl"></div>
+            </div>
+
+            <div className="w-full max-w-md relative">
+              {/* Header Section */}
+              <div className="text-center mb-10">
+                <div className="flex flex-col items-center gap-4 mb-6">
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4] rounded-2xl shadow-xl transform hover:scale-105 transition-transform">
+                    <span className="text-white font-bold text-2xl font-poppins">LC</span>
+                  </div>
+                  <span className="inline-flex items-center px-5 py-2 rounded-full text-xs font-bold tracking-wider bg-gradient-to-r from-[#0F4C5C]/10 to-[#2EC4B6]/10 text-[#0F4C5C] border-2 border-[#2EC4B6]/30 uppercase shadow-sm">
+                    Admin Login
+                  </span>
+                </div>
+                <h2 className="text-4xl font-black tracking-tight mb-3 text-[#0F172A] font-poppins">
+                  Welcome back
+                </h2>
+                <p className="text-[#94A3B8] text-sm max-w-xs mx-auto">
+                  Sign in to continue to the admin dashboard.
+                </p>
+              </div>
+
+              {/* Login Card */}
+              <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_30px_80px_-15px_rgba(15,76,92,0.4)] p-10 border-2 border-[#2EC4B6]/20 relative overflow-hidden">
+                {/* Subtle gradient overlay */}
+                <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4]"></div>
+
+                <form onSubmit={handleLogin} className="space-y-6">
             {/* Username Field */}
             <div className="space-y-2">
               <label
@@ -228,19 +274,20 @@ export default function LoginPage() {
                 </>
               )}
             </button>
-          </form>
+                </form>
 
-          {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-[#E2E8F0]">
-            <p className="text-xs text-center text-[#94A3B8] flex items-center justify-center gap-2 font-medium">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Lakbay CamSur Admin Panel &mdash; internal use only
-            </p>
+                {/* Footer */}
+                <div className="mt-8 pt-6 border-t border-[#E2E8F0]">
+                  <p className="text-xs text-center text-[#94A3B8] flex items-center justify-center gap-2 font-medium">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Lakbay CamSur Admin Panel &mdash; internal use only
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
     </div>
   )
 }
