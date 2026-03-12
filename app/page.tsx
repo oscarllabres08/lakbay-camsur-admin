@@ -131,14 +131,6 @@ export default function LoginPage() {
             <div className="w-full max-w-md relative">
               {/* Header Section */}
               <div className="text-center mb-10">
-                <div className="flex flex-col items-center gap-4 mb-6">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#0F4C5C] via-[#2EC4B6] to-[#06B6D4] rounded-2xl shadow-xl transform hover:scale-105 transition-transform">
-                    <span className="text-white font-bold text-2xl font-poppins">LC</span>
-                  </div>
-                  <span className="inline-flex items-center px-5 py-2 rounded-full text-xs font-bold tracking-wider bg-gradient-to-r from-[#0F4C5C]/10 to-[#2EC4B6]/10 text-[#0F4C5C] border-2 border-[#2EC4B6]/30 uppercase shadow-sm">
-                    Admin Login
-                  </span>
-                </div>
                 <h2 className="text-4xl font-black tracking-tight mb-3 text-[#0F172A] font-poppins">
                   Welcome back
                 </h2>
